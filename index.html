@@ -3,83 +3,49 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Trazabilidad EUDR - Prueba gratuita</title>
-  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
-  <style>
-    body { font-family: Arial; max-width: 600px; margin: 2em auto; padding: 1em; }
-    label, textarea, button { display: block; width: 100%; margin-bottom: 1em; }
-    textarea { height: 100px; }
-    button { padding: 10px; background: #2c3e50; color: white; border: none; font-size: 1em; }
-    .resultado { margin-top: 1em; padding: 1em; background: #f0f0f0; border-radius: 4px; }
-    .error { color: red; }
-  </style>
+  <title>Trazabilidad EUDR · Verificación de Deforestación</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js" defer></script>
+  <script src="app.js" defer></script>
 </head>
 <body>
-<div id="app">
-  <h1>Verificador de Deforestación (EUDR)</h1>
-  <p>Ingresá las coordenadas de tu lote (puntos separados por punto y coma).<br>
-  <strong>Formato:</strong> lat,lon; lat,lon; ... (ejemplo: -33.12,-64.56; -33.12,-64.55; -33.13,-64.55; -33.13,-64.56)
-  </p>
-  <label>Coordenadas:</label>
-  <textarea v-model="coords" placeholder="-33.12,-64.56; -33.12,-64.55; ..."></textarea>
-  <button @click="analizar" :disabled="cargando">
-    {{ cargando ? 'Analizando...' : 'Analizar lote' }}
-  </button>
-  <div v-if="error" class="resultado error">{{ error }}</div>
-  <div v-if="resultado" class="resultado">
-    <p><strong>Resultado:</strong> {{ resultado.veredicto }}</p>
-    <p>Deforestación post‑2020: {{ resultado.deforestacion }} ha</p>
-    <a v-if="resultado.pdf_url" :href="resultado.pdf_url" download>📄 Descargar informe PDF</a>
-  </div>
-</div>
+  <div id="app">
+    <header>
+      <h1>Verificador EUDR</h1>
+      <p>Análisis satelital de deforestación para tu lote</p>
+    </header>
 
-<script>
-const { createApp } = Vue;
-createApp({
-  data() {
-    return {
-      coords: '',
-      cargando: false,
-      error: null,
-      resultado: null,
-      // ⚠️ REEMPLAZÁ ESTA URL con la de Cloudflare (sin barra final)
-      apiUrl: 'https://provided-classified-rug-except.trycloudflare.com'
-    }
-  },
-  methods: {
-    async analizar() {
-      this.error = null;
-      this.resultado = null;
-      if (!this.coords.trim()) {
-        this.error = 'Por favor ingresá las coordenadas.';
-        return;
-      }
-      this.cargando = true;
-      try {
-        const response = await fetch(this.apiUrl + '/analyze', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ coords: this.coords.trim() })
-        });
-        if (!response.ok) {
-          const err = await response.json();
-          throw new Error(err.error || 'Error del servidor');
-        }
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        this.resultado = {
-          veredicto: 'Informe generado correctamente.',
-          deforestacion: 'Ver PDF',
-          pdf_url: url
-        };
-      } catch (e) {
-        this.error = e.message;
-      } finally {
-        this.cargando = false;
-      }
-    }
-  }
-}).mount('#app');
-</script>
+    <main>
+      <form @submit.prevent="analizar">
+        <label for="coords">Coordenadas del lote</label>
+        <textarea
+          id="coords"
+          v-model="coords"
+          placeholder="Ej: -33.12,-64.56; -33.12,-64.55; -33.13,-64.55; -33.13,-64.56"
+          rows="4"
+          required
+        ></textarea>
+        <small>Formato: lat,lon; lat,lon; ... (separados por punto y coma)</small>
+
+        <button type="submit" :disabled="cargando">
+          {{ cargando ? 'Analizando...' : 'Analizar lote' }}
+        </button>
+      </form>
+
+      <!-- Mensajes de error o resultado -->
+      <div v-if="error" class="mensaje error">{{ error }}</div>
+      <div v-if="resultado" class="mensaje exito">
+        <p><strong>{{ resultado.veredicto }}</strong></p>
+        <p>Deforestación post‑2020: {{ resultado.deforestacion }} ha</p>
+        <a v-if="resultado.pdf_url" :href="resultado.pdf_url" download class="btn-descarga">
+          📄 Descargar informe PDF
+        </a>
+      </div>
+    </main>
+
+    <footer>
+      <p>&copy; {{ new Date().getFullYear() }} Trazabilidad EUDR · Todos los derechos reservados</p>
+    </footer>
+  </div>
 </body>
 </html>
