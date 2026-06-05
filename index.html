@@ -1,1 +1,85 @@
-<h1>Proyecto Rio Cuarto</h1>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trazabilidad EUDR - Prueba gratuita</title>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <style>
+    body { font-family: Arial; max-width: 600px; margin: 2em auto; padding: 1em; }
+    label, textarea, button { display: block; width: 100%; margin-bottom: 1em; }
+    textarea { height: 100px; }
+    button { padding: 10px; background: #2c3e50; color: white; border: none; font-size: 1em; }
+    .resultado { margin-top: 1em; padding: 1em; background: #f0f0f0; border-radius: 4px; }
+    .error { color: red; }
+  </style>
+</head>
+<body>
+<div id="app">
+  <h1>Verificador de Deforestación (EUDR)</h1>
+  <p>Ingresá las coordenadas de tu lote (puntos separados por punto y coma).<br>
+  <strong>Formato:</strong> lat,lon; lat,lon; ... (ejemplo: -33.12,-64.56; -33.12,-64.55; -33.13,-64.55; -33.13,-64.56)
+  </p>
+  <label>Coordenadas:</label>
+  <textarea v-model="coords" placeholder="-33.12,-64.56; -33.12,-64.55; ..."></textarea>
+  <button @click="analizar" :disabled="cargando">
+    {{ cargando ? 'Analizando...' : 'Analizar lote' }}
+  </button>
+  <div v-if="error" class="resultado error">{{ error }}</div>
+  <div v-if="resultado" class="resultado">
+    <p><strong>Resultado:</strong> {{ resultado.veredicto }}</p>
+    <p>Deforestación post‑2020: {{ resultado.deforestacion }} ha</p>
+    <a v-if="resultado.pdf_url" :href="resultado.pdf_url" download>📄 Descargar informe PDF</a>
+  </div>
+</div>
+
+<script>
+const { createApp } = Vue;
+createApp({
+  data() {
+    return {
+      coords: '',
+      cargando: false,
+      error: null,
+      resultado: null,
+      // ⚠️ REEMPLAZÁ ESTA URL con la de Cloudflare (sin barra final)
+      apiUrl: 'https://TU-URL.trycloudflare.com'
+    }
+  },
+  methods: {
+    async analizar() {
+      this.error = null;
+      this.resultado = null;
+      if (!this.coords.trim()) {
+        this.error = 'Por favor ingresá las coordenadas.';
+        return;
+      }
+      this.cargando = true;
+      try {
+        const response = await fetch(this.apiUrl + '/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ coords: this.coords.trim() })
+        });
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err.error || 'Error del servidor');
+        }
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        this.resultado = {
+          veredicto: 'Informe generado correctamente.',
+          deforestacion: 'Ver PDF',
+          pdf_url: url
+        };
+      } catch (e) {
+        this.error = e.message;
+      } finally {
+        this.cargando = false;
+      }
+    }
+  }
+}).mount('#app');
+</script>
+</body>
+</html>
