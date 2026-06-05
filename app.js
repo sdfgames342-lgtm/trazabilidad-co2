@@ -7,8 +7,8 @@ createApp({
       cargando: false,
       error: null,
       resultado: null,
-      // ⚠️ REEMPLAZÁ ESTA URL con la de tu túnel de Cloudflare (sin barra final)
-      apiUrl: 'https://provided-classified-rug-except.trycloudflare.com'
+      // ⚠️ REEMPLAZÁ con tu URL de Cloudflare (sin barra final)
+      apiUrl: 'https://sentence-miller-mother-industrial.trycloudflare.com '
     };
   },
   methods: {
@@ -16,8 +16,10 @@ createApp({
       this.error = null;
       this.resultado = null;
 
-      if (!this.coords.trim()) {
-        this.error = 'Por favor ingresá las coordenadas.';
+      // Validación de datos
+      const sanitizado = validarCoordenadas(this.coords);
+      if (!sanitizado) {
+        this.error = 'Coordenadas inválidas. Usá el formato "lat,lon; lat,lon" (sin caracteres especiales).';
         return;
       }
 
@@ -27,7 +29,7 @@ createApp({
         const response = await fetch(this.apiUrl + '/analyze', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ coords: this.coords.trim() })
+          body: JSON.stringify({ coords: sanitizado })
         });
 
         if (!response.ok) {

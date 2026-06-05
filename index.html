@@ -6,45 +6,53 @@
   <title>Trazabilidad EUDR · Verificación de Deforestación</title>
   <link rel="stylesheet" href="styles.css">
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js" defer></script>
+  <script src="validar.js" defer></script>
+  <script src="efectos.js" defer></script>
   <script src="app.js" defer></script>
 </head>
 <body>
-  <div id="app">
+  <div id="app" class="grid-container">
     <header>
       <h1>Verificador EUDR</h1>
-      <p>Análisis satelital de deforestación para tu lote</p>
+      <p>Análisis satelital de deforestación para cumplir con el reglamento europeo</p>
     </header>
 
     <main>
-      <form @submit.prevent="analizar">
-        <label for="coords">Coordenadas del lote</label>
-        <textarea
-          id="coords"
-          v-model="coords"
-          placeholder="Ej: -33.12,-64.56; -33.12,-64.55; -33.13,-64.55; -33.13,-64.56"
-          rows="4"
-          required
-        ></textarea>
-        <small>Formato: lat,lon; lat,lon; ... (separados por punto y coma)</small>
+      <div class="card">
+        <form @submit.prevent="analizar">
+          <label for="coords">Coordenadas del lote</label>
+          <textarea
+            id="coords"
+            v-model="coords"
+            placeholder="Ej: -33.12,-64.56; -33.12,-64.55; -33.13,-64.55; -33.13,-64.56"
+            rows="4"
+            required
+          ></textarea>
+          <small>Formato: lat,lon; lat,lon; ... (separados por punto y coma)</small>
 
-        <button type="submit" :disabled="cargando">
-          {{ cargando ? 'Analizando...' : 'Analizar lote' }}
-        </button>
-      </form>
+          <button type="submit" :disabled="cargando">
+            <span v-if="!cargando">Analizar lote</span>
+            <span v-else>Analizando...</span>
+          </button>
+        </form>
 
-      <!-- Mensajes de error o resultado -->
-      <div v-if="error" class="mensaje error">{{ error }}</div>
-      <div v-if="resultado" class="mensaje exito">
-        <p><strong>{{ resultado.veredicto }}</strong></p>
-        <p>Deforestación post‑2020: {{ resultado.deforestacion }} ha</p>
-        <a v-if="resultado.pdf_url" :href="resultado.pdf_url" download class="btn-descarga">
-          📄 Descargar informe PDF
-        </a>
+        <transition name="fade">
+          <div v-if="error" class="mensaje error">
+            {{ error }}
+          </div>
+          <div v-else-if="resultado" class="mensaje exito">
+            <p><strong>{{ resultado.veredicto }}</strong></p>
+            <p>Deforestación post‑2020: {{ resultado.deforestacion }} ha</p>
+            <a v-if="resultado.pdf_url" :href="resultado.pdf_url" download class="btn-descarga">
+              📄 Descargar informe PDF
+            </a>
+          </div>
+        </transition>
       </div>
     </main>
 
     <footer>
-      <p>&copy; {{ new Date().getFullYear() }} Trazabilidad EUDR | Terrabyte && Andaluxia Projects · Todos los derechos reservados</p>
+      <p>&copy; {{ new Date().getFullYear() }} Trazabilidad EUDR · Todos los derechos reservados</p>
     </footer>
   </div>
 </body>
