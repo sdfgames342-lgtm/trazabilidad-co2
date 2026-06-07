@@ -124,7 +124,6 @@ createApp({
 
       cargando.value = true;
 
-      // Simular un pequeño retardo para dar sensación de procesamiento
       setTimeout(() => {
         try {
           const puntos = parsearCoordenadas(coordenadasRaw.value);
