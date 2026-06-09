@@ -310,3 +310,25 @@ textarea {
     font-size: 1.4rem;
   }
 }
+
+/* Botón mapa */
+.btn--map {
+  background: #f0f5f2;
+  color: var(--green-primary);
+  border: 1px solid var(--green-soft);
+  flex: 1;
+  margin-top: 0;
+}
+.btn--map:hover {
+  background: var(--green-soft);
+}
+.card--map {
+  padding: 0.8rem;
+  background: #fefefe;
+}
+.map-hint {
+  font-size: 0.7rem;
+  text-align: center;
+  margin-top: 0.5rem;
+  color: #6f8f85;
+}
