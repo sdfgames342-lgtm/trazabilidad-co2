@@ -13,7 +13,7 @@ createApp({
       error: null,
       resultado: null,
       // ⚠️ REEMPLAZÁ con la URL real de Cloudflare (sin barra final)
-      apiUrl: 'https://TU-URL.trycloudflare.com'
+      apiUrl: 'https://liquid-harold-disturbed-probably.trycloudflare.com'
     };
   },
   methods: {
