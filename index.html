@@ -2,72 +2,105 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Trazabilidad EUDR · Verificación de Deforestación</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>CO₂ trazabilidad · Verificador EUDR</title>
   <link rel="stylesheet" href="styles.css">
-  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js" defer></script>
-  <script src="validar.js" defer></script>
-  <script src="efectos.js" defer></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
   <script src="app.js" defer></script>
 </head>
 <body>
-  <div id="app" class="grid-container">
-    <header>
-      <h1>Verificador EUDR</h1>
-      <p>Análisis satelital de deforestación para cumplir con el reglamento europeo</p>
+  <div id="app">
+    <header class="header">
+      <div class="header__inner">
+        <h1 class="header__title">
+          <span class="co2-badge">CO₂</span> trazabilidad
+        </h1>
+        <p class="header__sub">🌱 desarrollo verde · cumplimiento EUDR</p>
+      </div>
     </header>
 
-    <main>
-      <div class="card">
-        <form @submit.prevent="analizar">
-          <label for="productor">Nombre del productor / razón social</label>
-          <input type="text" id="productor" v-model="productor" placeholder="Agropecuaria Los Robles S.A." required>
+    <main class="main">
+      <div class="container">
+        <!-- Tarjeta del formulario -->
+        <div class="card card--form">
+          <form @submit.prevent="analizarLote">
+            <div class="form-row">
+              <label>🌾 Productor / razón social</label>
+              <input type="text" v-model="productor" placeholder="Agropecuaria Los Robles S.A." required>
+            </div>
+            <div class="form-row">
+              <label>📧 Correo electrónico</label>
+              <input type="email" v-model="email" placeholder="contacto@ejemplo.com" required>
+            </div>
+            <div class="form-row">
+              <label>📄 RENSPA</label>
+              <input type="text" v-model="renspa" placeholder="N° de RENSPA" required>
+            </div>
+            <div class="form-row">
+              <label>🔢 CUIT / CUIL</label>
+              <input type="text" v-model="cuit" placeholder="XX-XXXXXXXX-X" required>
+            </div>
+            <div class="form-row">
+              <label>📅 Campaña</label>
+              <input type="text" v-model="campaña" placeholder="2025/2026" required>
+            </div>
+            <div class="form-row">
+              <label>🌽 Producto</label>
+              <input type="text" v-model="producto" placeholder="Soja, Maíz, Carne..." required>
+            </div>
+            <div class="form-row">
+              <label>📍 Polígono del lote</label>
+              <textarea v-model="coordenadasRaw" rows="3" placeholder="-33.1234,-64.3500; -33.1234,-64.3450; -33.1280,-64.3450; -33.1280,-64.3500" required></textarea>
+              <span class="hint">Formato: lat,lon; lat,lon; … (mínimo 3 puntos)</span>
+            </div>
+            <div style="display: flex; gap: 10px;">
+              <button type="submit" class="btn btn--primary" :disabled="cargando" style="flex: 2;">
+                <span v-if="!cargando">🌿 Analizar carbono</span>
+                <span v-else>🌀 Procesando...</span>
+              </button>
+              <button type="button" class="btn btn--map" @click="mostrarEnMapa" :disabled="!coordenadasRaw.trim()">
+                🗺️ Ver terreno
+              </button>
+            </div>
+          </form>
+        </div>
 
-          <label for="email">Correo electrónico de contacto</label>
-          <input type="email" id="email" v-model="email" placeholder="contacto@losrobles.com" required>
+        <!-- Mapa (se muestra solo después de presionar el botón) -->
+        <div class="card card--map" v-if="mostrarMapa">
+          <div id="mapContainer" style="height: 400px; width: 100%; border-radius: 20px; z-index: 1;"></div>
+          <p class="map-hint">📍 Vista satelital del polígono ingresado. Podés hacer zoom y arrastrar.</p>
+        </div>
 
-          <label for="renspa">RENSPA</label>
-          <input type="text" id="renspa" v-model="renspa" placeholder="N° de RENSPA" required>
-
-          <label for="cuit">CUIT / CUIL del productor</label>
-          <input type="text" id="cuit" v-model="cuit" placeholder="XX-XXXXXXXX-X" required>
-
-          <label for="campaña">Campaña (ej: 2025/2026)</label>
-          <input type="text" id="campaña" v-model="campaña" placeholder="2025/2026" required>
-
-          <label for="coords">Coordenadas del lote</label>
-          <textarea
-            id="coords"
-            v-model="coords"
-            placeholder="Ej: -33.12,-64.56; -33.12,-64.55; -33.13,-64.55; -33.13,-64.56"
-            rows="4"
-            required
-          ></textarea>
-          <small>Formato: lat,lon; lat,lon; ... (separados por punto y coma)</small>
-
-          <button type="submit" :disabled="cargando">
-            <span v-if="!cargando">Analizar lote</span>
-            <span v-else>Analizando...</span>
-          </button>
-        </form>
-
+        <!-- Resultados -->
         <transition name="fade">
-          <div v-if="error" class="mensaje error">
-            {{ error }}
+          <div v-if="errorMsg" class="card card--error">
+            <div class="error-icon">⚠️</div>
+            <p>{{ errorMsg }}</p>
           </div>
-          <div v-else-if="resultado" class="mensaje exito">
-            <p><strong>{{ resultado.veredicto }}</strong></p>
-            <p>Deforestación post‑2020: {{ resultado.deforestacion }} ha</p>
-            <a v-if="resultado.pdf_url" :href="resultado.pdf_url" download class="btn-descarga">
-              📄 Descargar informe ZIP (PDF + CSV + JSON)
-            </a>
+          <div v-else-if="resultadoData" class="card card--result">
+            <div class="result-badge">{{ resultadoData.veredicto }}</div>
+            <div class="metric-group">
+              <div class="metric">
+                <div class="metric__icon">🌎</div>
+                <div class="metric__value">{{ resultadoData.areaHa }} <span>ha</span></div>
+                <div class="metric__label">Superficie</div>
+              </div>
+              <div class="metric">
+                <div class="metric__icon">🔥</div>
+                <div class="metric__value">{{ resultadoData.deforestacion }} <span>ha</span></div>
+                <div class="metric__label">Deforestación post‑2020</div>
+              </div>
+            </div>
+            <a :href="resultadoData.urlDescarga" download class="btn btn--download">📦 Descargar informe (ZIP: PDF+CSV+JSON)</a>
           </div>
         </transition>
       </div>
     </main>
 
-    <footer>
-      <p>&copy; {{ new Date().getFullYear() }} Trazabilidad EUDR · Todos los derechos reservados</p>
+    <footer class="footer">
+      <p>© {{ anioActual }} · CO₂ trazabilidad · compromiso con el desarrollo sostenible</p>
     </footer>
   </div>
 </body>
