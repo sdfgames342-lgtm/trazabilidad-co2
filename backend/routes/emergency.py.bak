@@ -1,0 +1,33 @@
+import os, json
+from flask import jsonify
+from backend.services.openaq import OpenAqService
+from backend.services.nasa_firms import NasaFirmsService
+from backend.services.usgs import UsgsService
+
+def register_emergency_routes(app):
+    @app.route("/api/emergency-layers")
+    def emergency_layers():
+        try:
+            def hazardous():
+                archivo = os.path.join(os.path.dirname(__file__), "..", "api", "hazardous.geojson")
+                if not os.path.exists(archivo):
+                    archivo = os.path.join(os.path.dirname(__file__), "..", "hazardous.geojson")
+                if not os.path.exists(archivo):
+                    return []
+                with open(archivo) as f:
+                    features = json.load(f).get("features", [])
+                return [{
+                    "lat": f["geometry"]["coordinates"][1],
+                    "lng": f["geometry"]["coordinates"][0],
+                    "category": "instalacion_peligrosa",
+                    "type": f["properties"].get("NAME", "Instalación"),
+                    "status": f["properties"].get("STATUS", "Desconocido")
+                } for f in features]
+
+            openaq = OpenAqService().get_global_stations()
+            firms = NasaFirmsService().get_global_fires()
+            usgs = UsgsService().get_global_earthquakes()
+
+            return jsonify(hazardous() + openaq + firms + usgs)
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500

@@ -1,0 +1,52 @@
+from datetime import datetime, timezone, timedelta
+from backend.services.base import BaseHttpService
+from backend.config import GFW_API_KEY
+from typing import Dict, List
+
+class GfwService(BaseHttpService):
+    def __init__(self):
+        super().__init__(timeout=15, breaker_name="gfw")
+        self.token = GFW_API_KEY
+        self.base_url = "https://data-api.globalforestwatch.org/analysis/zonal"
+
+    def _headers(self):
+        return {"x-api-key": self.token, "Content-Type": "application/json"}
+
+    def _post_query(self, payload: Dict) -> Dict:
+        if not self.token:
+            return {}
+        resp = self._post(self.base_url, json_data=payload, headers=self._headers())
+        if resp and resp.status_code == 200:
+            data = resp.json()
+            if data.get("status") == "success":
+                return data
+        return {}
+
+    def get_all_metrics(self, coordenadas: List[List[float]]) -> Dict:
+        if not self.token:
+            return {"loss_ha": 0.0, "carbon_ton": 0.0, "gain_ha": 0.0, "baseline_forest_ha": 0.0}
+        end_date = (datetime.now(timezone.utc) - timedelta(days=3)).strftime("%Y-%m-%d")
+        base = {"geometry": {"type": "Polygon", "coordinates": [coordenadas]}, "group_by": [], "filters": []}
+
+        # Pérdida
+        data = self._post_query({**base, "sum": ["area__ha"], "start_date": "2021-01-01", "end_date": end_date})
+        loss_ha = sum(item.get("area__ha", 0) for item in data.get("data", []))
+
+        # Carbono
+        data = self._post_query({**base, "sum": ["whrc_aboveground_co2_emissions__Mg"], "start_date": "2021-01-01", "end_date": end_date})
+        co2_Mg = sum(item.get("whrc_aboveground_co2_emissions__Mg", 0) for item in data.get("data", []))
+
+        # Ganancia
+        data = self._post_query({**base, "sum": ["area__ha"], "filters": [{"type": "is__umd_tree_cover_gain"}], "start_date": "2000-01-01", "end_date": "2012-12-31"})
+        gain_ha = sum(item.get("area__ha", 0) for item in data.get("data", []))
+
+        # Cobertura basal 2000
+        data = self._post_query({**base, "sum": ["area__ha"], "filters": [{"type": "is__umd_tree_cover_density_2000", "value": 30, "operator": ">"}], "start_date": "2000-01-01", "end_date": "2000-12-31"})
+        basal_ha = sum(item.get("area__ha", 0) for item in data.get("data", []))
+
+        return {
+            "loss_ha": loss_ha,
+            "carbon_ton": round(co2_Mg / 1000, 2),
+            "gain_ha": round(gain_ha, 2),
+            "baseline_forest_ha": round(basal_ha, 2)
+        }

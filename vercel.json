@@ -1,0 +1,9 @@
+{
+  "version": 2,
+  "rewrites": [
+    { "source": "/analyze", "destination": "api/app.py" },
+    { "source": "/api/(.*)", "destination": "api/app.py" },
+    { "source": "/health", "destination": "api/app.py" },
+    { "source": "/(.*)", "destination": "/$1" }
+  ]
+}

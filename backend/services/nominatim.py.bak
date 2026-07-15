@@ -1,0 +1,20 @@
+from backend.services.base import BaseHttpService
+from typing import Dict
+
+class NominatimService(BaseHttpService):
+    def __init__(self):
+        super().__init__(timeout=5, breaker_name="nominatim")
+
+    def reverse_geocode(self, lat: float, lon: float) -> Dict:
+        resp = self._get("https://nominatim.openstreetmap.org/reverse", params={
+            "format": "json", "lat": lat, "lon": lon, "zoom": 10,
+            "addressdetails": 1, "accept-language": "es"
+        }, headers={"User-Agent": "TerraSentry/1.0"})
+        if resp and resp.status_code == 200:
+            addr = resp.json().get("address", {})
+            ciudad = addr.get("city") or addr.get("town") or addr.get("village") or addr.get("hamlet") or ""
+            provincia = addr.get("state") or addr.get("region") or ""
+            pais = addr.get("country") or ""
+            formatted = ", ".join(p for p in [ciudad, provincia, pais] if p) or "Ubicación no disponible"
+            return {"ciudad": ciudad, "provincia": provincia, "pais": pais, "formatted": formatted}
+        return {"formatted": "Ubicación no disponible"}

@@ -1,0 +1,18 @@
+from flask import Flask
+from flask_cors import CORS
+from backend.routes.analyze import register_analyze_routes
+from backend.routes.emergency import register_emergency_routes
+from backend.routes.report import register_report_routes
+from backend.routes.static import register_static_routes
+
+def create_app():
+    app = Flask(__name__, static_folder=None)  # static lo manejamos nosotros
+    CORS(app)
+    register_analyze_routes(app)
+    register_emergency_routes(app)
+    register_report_routes(app)
+    register_static_routes(app)
+    return app
+
+if __name__ == "__main__":
+    create_app().run(host="0.0.0.0", port=5000, debug=False)

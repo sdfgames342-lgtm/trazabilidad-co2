@@ -1,0 +1,9 @@
+flask
+flask-cors
+requests
+reportlab
+google-generativeai
+Flask-Limiter
+Flask-Caching
+redis
+pybreaker

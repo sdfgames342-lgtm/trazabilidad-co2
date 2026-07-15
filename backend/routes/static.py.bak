@@ -1,0 +1,21 @@
+import os
+from flask import send_file, abort, jsonify
+
+def register_static_routes(app):
+    @app.route("/health")
+    def health():
+        return jsonify({"status":"ok"})
+
+    @app.route("/")
+    def serve_index():
+        # Subimos dos niveles desde backend/routes para llegar a la raíz del proyecto
+        root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+        return send_file(os.path.join(root_dir, "index.html"))
+
+    @app.route("/<path:filename>")
+    def serve_static(filename):
+        root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+        path = os.path.join(root_dir, filename)
+        if not os.path.isfile(path):
+            abort(404)
+        return send_file(path)

@@ -1,0 +1,50 @@
+from datetime import datetime, timezone, timedelta
+from backend.services.base import BaseHttpService
+from backend.config import NASA_KEY
+from typing import List, Dict
+
+class NasaFirmsService(BaseHttpService):
+    def __init__(self):
+        super().__init__(timeout=15, breaker_name="nasa_firms")
+        self.key = NASA_KEY
+
+    def _get_fires_for_day(self, bbox: List[float], date_str: str) -> int:
+        url = f"https://firms.modaps.eosdis.nasa.gov/api/area/csv/{self.key}/VIIRS_NOAA21_NRT/{bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]}/1/{date_str}"
+        resp = self._get(url)
+        if resp and resp.status_code == 200:
+            lines = resp.text.strip().split('\n')
+            return len(lines) - 1 if len(lines) > 1 else 0
+        return 0
+
+    def count_fires_nearby(self, lat: float, lon: float, radius_km: int = 50, days: int = 7) -> int:
+        if not self.key:
+            return 0
+        delta = radius_km / 111.0
+        bbox = [lon - delta, lat - delta, lon + delta, lat + delta]
+        total = 0
+        for i in range(days):
+            date = (datetime.now(timezone.utc) - timedelta(days=i+1)).strftime("%Y-%m-%d")
+            total += self._get_fires_for_day(bbox, date)
+        return total
+
+    def get_global_fires(self) -> List[Dict]:
+        if not self.key:
+            return []
+        fecha = (datetime.now(timezone.utc) - timedelta(days=1)).strftime("%Y-%m-%d")
+        url = f"https://firms.modaps.eosdis.nasa.gov/api/area/csv/{self.key}/VIIRS_NOAA21_NRT/-73,8,-60,12/1/{fecha}"
+        resp = self._get(url)
+        if not resp or resp.status_code != 200:
+            return []
+        lines = resp.text.strip().split('\n')[1:]
+        puntos = []
+        for line in lines[:500]:
+            cols = line.split(',')
+            try:
+                puntos.append({
+                    "lat": float(cols[0]), "lng": float(cols[1]),
+                    "category": "incendio", "type": "Foco de calor",
+                    "valor": float(cols[2]), "unidad": "K"
+                })
+            except (ValueError, IndexError):
+                pass
+        return puntos

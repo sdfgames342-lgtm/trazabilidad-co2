@@ -1,0 +1,27 @@
+from flask import request, jsonify
+from backend.services.ingresos import IngresosService
+from backend.services.ia_service import IaService
+
+def register_report_routes(app):
+    @app.route("/reporte-ia", methods=["POST"])
+    def reporte_ia():
+        data = request.get_json() or {}
+        compact = {
+            "prod": data.get("producto","Soja")[:10],
+            "ha": data.get("area_total_ha",0),
+            "defor": data.get("deforestacion_ha",0),
+            "co2": data.get("carbono_ton",0),
+            "temp": data.get("clima",{}).get("temperatura","N/D"),
+            "hum": data.get("clima",{}).get("humedad","N/D"),
+            "lluv": data.get("clima",{}).get("precipitacion_3d",0),
+            "incend": data.get("incendios_cercanos",0),
+            "sismos": data.get("sismos_cercanos",{}).get("count",0) if data.get("sismos_cercanos") else 0,
+            "ubi": data.get("ubicacion",{}).get("formatted","")[:50],
+            "vered": data.get("veredicto","")[:30]
+        }
+        ingresos = IngresosService().calcular(
+            data.get("area_total_ha", 0),
+            data.get("producto", "Soja")
+        )
+        ia = IaService().generate_analysis(compact, ingresos)
+        return jsonify({"ingresos": ingresos, "analisis_ia": ia})

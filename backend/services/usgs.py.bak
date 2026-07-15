@@ -1,0 +1,30 @@
+from backend.services.base import BaseHttpService
+from typing import Dict, List, Optional
+
+class UsgsService(BaseHttpService):
+    def __init__(self):
+        super().__init__(timeout=10, breaker_name="usgs")
+
+    def get_earthquakes_nearby(self, lat: float, lon: float, radius_km: int = 100) -> Optional[Dict]:
+        url = f"https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&latitude={lat}&longitude={lon}&maxradiuskm={radius_km}&minmagnitude=2"
+        resp = self._get(url)
+        if resp and resp.status_code == 200:
+            features = resp.json().get("features", [])
+            mags = [f["properties"]["mag"] for f in features]
+            return {"count": len(features), "max_mag": max(mags) if mags else 0}
+        return None
+
+    def get_global_earthquakes(self) -> List[Dict]:
+        url = "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&minlatitude=8&maxlatitude=12&minlongitude=-73&maxlongitude=-60"
+        resp = self._get(url)
+        if not resp or resp.status_code != 200:
+            return []
+        features = resp.json().get("features", [])
+        return [{
+            "lat": f["geometry"]["coordinates"][1],
+            "lng": f["geometry"]["coordinates"][0],
+            "category": "sismo",
+            "type": f"M{f['properties']['mag']} – {f['properties']['title']}",
+            "valor": f["properties"]["mag"],
+            "unidad": "magnitud"
+        } for f in features]

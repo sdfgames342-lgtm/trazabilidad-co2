@@ -1,0 +1,50 @@
+from backend.services.gfw import GfwService
+from backend.services.openaq import OpenAqService
+from backend.services.nasa_firms import NasaFirmsService
+from backend.services.usgs import UsgsService
+from backend.services.openmeteo import OpenMeteoService
+from backend.services.nominatim import NominatimService
+from backend.utils.geo import parse_coords_string, centroide, area_poligono_hectareas, punto_en_cordoba
+from typing import Dict
+
+class EudrAnalyzer:
+    def __init__(self):
+        self.gfw = GfwService()
+        self.openaq = OpenAqService()
+        self.firms = NasaFirmsService()
+        self.usgs = UsgsService()
+        self.meteo = OpenMeteoService()
+        self.nominatim = NominatimService()
+
+    def analyze(self, coords_str: str, **metadata) -> Dict:
+        coordenadas = parse_coords_string(coords_str)
+        if len(coordenadas) < 4:
+            raise ValueError("Se necesitan al menos 3 puntos válidos")
+
+        lon, lat = centroide(coordenadas)
+        dentro_cordoba = punto_en_cordoba(lat, lon)
+        area = area_poligono_hectareas(coordenadas)
+
+        gfw_data = self.gfw.get_all_metrics(coordenadas)
+        gfw_data = gfw_data or {"loss_ha":0, "carbon_ton":0, "gain_ha":0, "baseline_forest_ha":0}
+
+        veredicto = "Sin deforestacion" if gfw_data["loss_ha"] == 0 else "Deforestacion detectada"
+        indice = "Sostenible" if gfw_data["loss_ha"] == 0 else "Alerta"
+
+        return {
+            "area_total_ha": round(area, 2),
+            "deforestacion_ha": round(gfw_data["loss_ha"], 2),
+            "carbono_ton": gfw_data["carbon_ton"],
+            "ganancia_bosque_ha": gfw_data["gain_ha"],
+            "bosque_basal_ha": gfw_data["baseline_forest_ha"],
+            "indice_verde": indice,
+            "veredicto": veredicto,
+            "dentro_cordoba": dentro_cordoba,
+            "centroid_lat": round(lat, 6),
+            "centroid_lon": round(lon, 6),
+            "calidad_aire": self.openaq.get_air_quality_around(lat, lon),
+            "incendios_cercanos": self.firms.count_fires_nearby(lat, lon),
+            "sismos_cercanos": self.usgs.get_earthquakes_nearby(lat, lon),
+            "clima": self.meteo.get_climate(lat, lon),
+            "ubicacion": self.nominatim.reverse_geocode(lat, lon)
+        }

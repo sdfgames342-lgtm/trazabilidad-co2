@@ -1,0 +1,25 @@
+from backend.services.base import BaseHttpService
+from typing import Dict, Optional
+
+class OpenMeteoService(BaseHttpService):
+    def __init__(self):
+        super().__init__(timeout=10, breaker_name="openmeteo")
+
+    def get_climate(self, lat: float, lon: float) -> Optional[Dict]:
+        resp = self._get("https://api.open-meteo.com/v1/forecast", params={
+            "latitude": lat, "longitude": lon,
+            "current": ["temperature_2m","relative_humidity_2m","precipitation"],
+            "daily": ["precipitation_sum"], "forecast_days": 3,
+            "timezone": "America/Argentina/Cordoba"
+        })
+        if resp and resp.status_code == 200:
+            data = resp.json()
+            cur = data.get("current", {})
+            daily = data.get("daily", {})
+            precip = sum(daily.get("precipitation_sum", [])) if daily.get("precipitation_sum") else 0
+            return {
+                "temperatura": cur.get("temperature_2m"),
+                "humedad": cur.get("relative_humidity_2m"),
+                "precipitacion_3d": round(precip, 1)
+            }
+        return None

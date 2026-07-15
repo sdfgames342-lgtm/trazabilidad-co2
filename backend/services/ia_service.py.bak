@@ -1,0 +1,32 @@
+import json, re
+from backend.config import GEMINI_API_KEY
+from typing import Dict
+
+class IaService:
+    def __init__(self):
+        self.key = GEMINI_API_KEY
+
+    def generate_analysis(self, datos_compactos: Dict, ingresos: Dict) -> Dict:
+        if not self.key:
+            return {"riesgo":"No disponible","resumen":"GEMINI_API_KEY no configurada","recomendacion":""}
+
+        # Sanear el campo "prod" (solo letras, números y espacios, máximo 10 caracteres)
+        if "prod" in datos_compactos:
+            datos_compactos["prod"] = re.sub(r'[^a-zA-Z0-9 ]', '', datos_compactos["prod"])[:10]
+
+        try:
+            import google.generativeai as genai
+            genai.configure(api_key=self.key)
+            model = genai.GenerativeModel(
+                "gemini-2.0-flash",
+                system_instruction="Sos un asesor agroambiental experto en EUDR. Devolvé SOLO un JSON con: riesgo (Alto/Medio/Bajo), resumen (máx 50 palabras), y recomendacion (máx 30 palabras). No agregues texto fuera del JSON."
+            )
+            prompt = json.dumps(datos_compactos) + "\nIngresos estimados: " + json.dumps(ingresos) + "\nDevolvé solo el JSON con riesgo, resumen y recomendacion."
+            resp = model.generate_content(prompt, generation_config={"temperature":0.3, "max_output_tokens":150})
+            texto = resp.text.strip()
+            if texto.startswith("```"):
+                texto = texto.split("\n", 1)[1].rsplit("\n", 1)[0]
+            return json.loads(texto)
+        except Exception as e:
+            print(f"Error Gemini: {e}")
+            return {"riesgo":"No disponible","resumen":"Análisis no completado.","recomendacion":"Revisar manualmente."}

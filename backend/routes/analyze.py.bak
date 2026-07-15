@@ -1,0 +1,25 @@
+import traceback
+from flask import request, jsonify
+from backend.services.eudr_analyzer import EudrAnalyzer
+
+def register_analyze_routes(app):
+    @app.route("/analyze", methods=["POST"])
+    def analyze():
+        try:
+            data = request.get_json() or {}
+            if not all([data.get(k) for k in ("coords","productor","email","renspa","cuit")]):
+                return jsonify({"error":"Faltan datos obligatorios"}), 400
+            analyzer = EudrAnalyzer()
+            result = analyzer.analyze(
+                coords_str=data["coords"],
+                productor=data.get("productor",""),
+                email=data.get("email",""),
+                renspa=data.get("renspa",""),
+                cuit=data.get("cuit",""),
+                campaña=data.get("campaña",""),
+                producto=data.get("producto","Soja")
+            )
+            return jsonify(result)
+        except Exception as e:
+            traceback.print_exc()
+            return jsonify({"error":str(e)}), 500

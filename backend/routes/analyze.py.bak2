@@ -1,0 +1,45 @@
+import traceback
+from flask import request, jsonify
+from backend.services.eudr_analyzer import EudrAnalyzer
+from backend.utils.validators import validate_email, validate_renspa, validate_cuit
+
+def register_analyze_routes(app, limiter=None, cache=None):
+    decorators = [limiter.limit("10 per minute")] if limiter else []
+
+    def apply_decorators(f):
+        for deco in reversed(decorators):
+            f = deco(f)
+        return f
+
+    @app.route("/analyze", methods=["POST"])
+    @apply_decorators
+    def analyze():
+        try:
+            data = request.get_json() or {}
+            # Validar campos obligatorios
+            required = ("coords","productor","email","renspa","cuit")
+            if not all(data.get(k) for k in required):
+                return jsonify({"error":"Faltan datos obligatorios"}), 400
+
+            # Validación avanzada
+            if not validate_email(data["email"]):
+                return jsonify({"error":"Email inválido"}), 400
+            if not validate_renspa(data["renspa"]):
+                return jsonify({"error":"RENSPA inválido (formato: 04.123.0.45678/00)"}), 400
+            if not validate_cuit(data["cuit"]):
+                return jsonify({"error":"CUIT inválido (formato: XX-XXXXXXXX-X)"}), 400
+
+            analyzer = EudrAnalyzer(cache=cache)
+            result = analyzer.analyze(
+                coords_str=data["coords"],
+                productor=data.get("productor",""),
+                email=data.get("email",""),
+                renspa=data.get("renspa",""),
+                cuit=data.get("cuit",""),
+                campaña=data.get("campaña",""),
+                producto=data.get("producto","Soja")
+            )
+            return jsonify(result)
+        except Exception as e:
+            traceback.print_exc()
+            return jsonify({"error":str(e)}), 500

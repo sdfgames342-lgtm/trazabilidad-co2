@@ -1,0 +1,49 @@
+from backend.services.base import BaseHttpService
+from backend.config import OPENAQ_KEY
+from typing import Optional, Dict, List
+
+class OpenAqService(BaseHttpService):
+    def __init__(self):
+        super().__init__(timeout=10, breaker_name="openaq")
+        self.key = OPENAQ_KEY
+        self.base = "https://api.openaq.org/v2"
+
+    def _headers(self):
+        return {"X-API-Key": self.key} if self.key else {}
+
+    def get_air_quality_around(self, lat: float, lon: float, radius_m: int = 50000) -> Optional[Dict[str, str]]:
+        if not self.key:
+            return None
+        result = {}
+        for param, label in {"pm25":"PM2.5","pm10":"PM10","no2":"NO2","o3":"O3"}.items():
+            resp = self._get(f"{self.base}/latest", params={
+                "coordinates": f"{lat},{lon}", "radius": radius_m,
+                "parameter": param, "limit": 3, "sort": "desc"
+            }, headers=self._headers())
+            if resp and resp.status_code == 200:
+                data = resp.json()
+                measurements = [m["value"] for loc in data.get("results",[]) for m in loc.get("measurements",[]) if m.get("parameter")==param]
+                if measurements:
+                    result[label] = f"{round(sum(measurements)/len(measurements),1)} µg/m³"
+        return result if result else None
+
+    def get_global_stations(self) -> List[Dict]:
+        if not self.key:
+            return []
+        resp = self._get(f"{self.base}/latest", params={
+            "country":"AR", "parameter":"pm25", "limit":100
+        }, headers=self._headers())
+        if not resp or resp.status_code != 200:
+            return []
+        results = resp.json().get("results", [])
+        puntos = []
+        for loc in results:
+            coords = loc.get("coordinates", {})
+            mediciones = loc.get("measurements", [])
+            ultima = mediciones[0] if mediciones else {}
+            puntos.append({
+                "lat": coords.get("latitude"), "lng": coords.get("longitude"),
+                "category": "contaminacion", "type": loc.get("location", "Estación"),
+                "valor": ultima.get("value"), "unidad": ultima.get("unit")
+            })
+        return puntos
