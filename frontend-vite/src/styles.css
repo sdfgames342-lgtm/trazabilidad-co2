@@ -673,3 +673,12 @@ p {
     scroll-behavior: auto !important;
   }
 }
+
+.wizard-progress { display: flex; justify-content: space-between; margin-bottom: 2rem; counter-reset: step; }
+.wizard-step { flex: 1; text-align: center; font-size: 0.8rem; color: #64748b; }
+.wizard-step.active { color: #10b981; font-weight: 700; }
+.step-number { display: block; border: 1px solid #cbd5e1; border-radius: 50%; width: 25px; margin: 0 auto 5px; }
+.active .step-number { background: #10b981; color: white; border-color: #10b981; }
+.coord-feedback { margin-top: 5px; font-size: 0.8rem; }
+.text-success { color: #10b981; }
+.text-error { color: #ef4444; }
