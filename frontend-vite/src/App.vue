@@ -151,6 +151,7 @@
 
           <div class="result__actions">
             <button @click="generarReporteIA" class="btn btn--ai">🤖 Análisis IA</button>
+            <button @click="exportarCertificadoFormal" class="btn btn--primary">🎓 Certificado Formal (PDF)</button>
             <button @click="generarReporteLocal" class="btn btn--primary">📋 Certificado</button>
             <div class="result__actions-group">
               <label><input type="checkbox" v-model="anonimizarKML"> 🔒 Sanitizar PII</label>
@@ -207,6 +208,24 @@
       </div>
     </div>
   </div>
+  <div v-show="certificadoVisible" style="position: absolute; left: -9999px;">
+    <CertificateTemplate
+      v-if="resultadoData"
+      :productor="productor"
+      :renspa="renspa"
+      :cuit="cuit"
+      :campaña="campaña"
+      :producto="producto"
+      :compliance-token="resultadoData.compliance_token"
+      :area-total="resultadoData.areaTotal"
+      :deforestacion-post2020="resultadoData.deforestacionPost2020 || resultadoData.deforestacion"
+      :carbono="resultadoData.carbono"
+      :indice-verde="resultadoData.indiceVerde"
+      :veredicto="resultadoData.veredicto"
+      :ubicacion="resultadoData.ubicacion"
+      :area-protegida="resultadoData.area_protegida"
+    />
+  </div>
 </template>
 
 <script setup>
@@ -214,7 +233,9 @@ import { ref, nextTick, computed, onUnmounted } from 'vue'
 import MapManager from './map-manager.js'
 import KmlParser from './kml-parser.js'
 import TutorialEngine from './tutorial-engine.js'
+import CertificateTemplate from './components/CertificateTemplate.vue'
 import { ApiClient } from './api-client.js'
+import html2pdf from 'html2pdf.js'
 
 // ---------- validación ----------
 function validarCoordenadas(raw) {
@@ -246,6 +267,7 @@ const posibleSwap = ref(false)
 const fueraDeCordoba = ref(false)
 const kmlFileInput = ref(null)
 const modoDibujo = ref(false)
+const certificadoVisible = ref(false)
 
 // ---------- Servicios ----------
 const mapaPrincipal = new MapManager('mapContainer')
@@ -403,6 +425,24 @@ function confirmarDibujo() {
 function cerrarDibujo() {
   if (mapaDibujo) { mapaDibujo.remove(); mapaDibujo = null; dibujoItems = null }
   modoDibujo.value = false
+
+function exportarCertificadoFormal() {
+  if (!resultadoData.value) return;
+  certificadoVisible.value = true;
+  nextTick(() => {
+    const element = document.getElementById("certificado-formal");
+    const opt = {
+      margin: [10, 10, 10, 10],
+      filename: `Certificado_TerraSentry_${productor.value.replace(/\s+/g, "_")}.pdf`,
+      image: { type: "jpeg", quality: 0.98 },
+      html2canvas: { scale: 2, logging: false, letterRendering: true, useCORS: true },
+      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
+    };
+    html2pdf().set(opt).from(element).save().then(() => {
+      certificadoVisible.value = false;
+    });
+  });
+}
 }
 
 onUnmounted(() => { if (mapaDibujo) mapaDibujo.remove() })
