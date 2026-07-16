@@ -1,5 +1,7 @@
 <template>
-  <div id="app">
+  <div id="app" class="app">
+    <Header @start-tutorial="iniciarTutorial" />
+    <main class="main">
     <!-- ==================== HEADER NUEVO ==================== -->
     <header class="header">
       <div class="header__inner">
@@ -226,16 +228,32 @@
       :area-protegida="resultadoData.area_protegida"
     />
   </div>
+    </main>
+    <Footer />
 </template>
 
 <script setup>
 import { ref, nextTick, computed, onUnmounted } from 'vue'
+import Header from './components/Header.vue'
+import Footer from './components/Footer.vue'
 import MapManager from './map-manager.js'
+import Header from './components/Header.vue'
+import Footer from './components/Footer.vue'
 import KmlParser from './kml-parser.js'
+import Header from './components/Header.vue'
+import Footer from './components/Footer.vue'
 import TutorialEngine from './tutorial-engine.js'
+import Header from './components/Header.vue'
+import Footer from './components/Footer.vue'
 import CertificateTemplate from './components/CertificateTemplate.vue'
+import Header from './components/Header.vue'
+import Footer from './components/Footer.vue'
 import { ApiClient } from './api-client.js'
+import Header from './components/Header.vue'
+import Footer from './components/Footer.vue'
 import html2pdf from 'html2pdf.js'
+import Header from './components/Header.vue'
+import Footer from './components/Footer.vue'
 
 // ---------- validación ----------
 function validarCoordenadas(raw) {
@@ -452,4 +470,15 @@ onUnmounted(() => { if (mapaDibujo) mapaDibujo.remove() })
 @import '/styles.css';
 @import 'leaflet/dist/leaflet.css';
 @import 'leaflet-draw/dist/leaflet.draw.css';
+</style>
+
+<style>
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+.main {
+  flex: 1;
+}
 </style>
