@@ -1,0 +1,43 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "NAME": "Parque Nacional Quebrada del Condorito",
+        "DESIG": "National Park",
+        "IUCN_CAT": "II",
+        "STATUS": "Designated"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-64.8, -31.7],
+          [-64.6, -31.7],
+          [-64.6, -31.5],
+          [-64.8, -31.5],
+          [-64.8, -31.7]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "NAME": "Reserva Natural de Fauna Laguna La Felipa",
+        "DESIG": "Wildlife Reserve",
+        "IUCN_CAT": "IV",
+        "STATUS": "Designated"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-63.5, -33.2],
+          [-63.3, -33.2],
+          [-63.3, -33.0],
+          [-63.5, -33.0],
+          [-63.5, -33.2]
+        ]]
+      }
+    }
+  ]
+}
