@@ -1,9 +1,7 @@
 flask
 flask-cors
 requests
-reportlab
 google-generativeai
 Flask-Limiter
-Flask-Caching
-redis
-pybreaker
+# Redis y Flask-Caching no se utilizan en Vercel (no hay servidor Redis)
+# Si deseas mantener la caché, deberías migrar a Upstash Redis y añadir redis nuevamente.
