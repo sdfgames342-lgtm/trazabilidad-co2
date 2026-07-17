@@ -2,29 +2,7 @@
   <div id="app" class="app">
     <Header @start-tutorial="iniciarTutorial" />
     <main class="main">
-    <!-- ==================== HEADER NUEVO ==================== -->
-    <header class="header">
-      <div class="header__inner">
-        <div class="header__left">
-          <button class="btn btn--tutorial" @click="iniciarTutorial" aria-label="Iniciar tutorial interactivo" title="Tutorial">🎓 Tutorial</button>
-          <button class="btn btn--help" disabled aria-label="Ayuda (próximamente)" aria-disabled="true">❓ Ayuda</button>
-        </div>
-        <div class="header__right-brand">
-          <div class="header__brand">
-            <span class="pulse-dot" aria-hidden="true"></span>
-            <h1 class="header__title"><span class="co2-badge" aria-hidden="true">CO₂</span> TerraSentry</h1>
-          </div>
-          <div class="header__subtitle">
-            <span>🌱 Monitoreo</span>
-            <span>· Carbono</span>
-            <span>· EUDR</span>
-          </div>
-        </div>
-      </div>
-    </header>
-
-    <!-- ==================== MAIN ==================== -->
-    <main class="main">
+      <!-- ==================== BARRA DE ESTADO ==================== -->
       <div class="main__status-bar">
         <div class="node-badge">
           <span class="node-badge__dot" aria-hidden="true"></span>
@@ -32,6 +10,7 @@
         </div>
       </div>
 
+      <!-- ==================== FORMULARIO Y RESULTADOS (tu contenido actual) ==================== -->
       <section class="card" aria-labelledby="form-heading">
         <h2 id="form-heading" class="sr-only">Formulario de análisis</h2>
         <form @submit.prevent="analizarLote">
@@ -153,8 +132,8 @@
 
           <div class="result__actions">
             <button @click="generarReporteIA" class="btn btn--ai">🤖 Análisis IA</button>
+            <button @click="generarReporteLocal" class="btn btn--primary">📋 Certificado TXT</button>
             <button @click="exportarCertificadoFormal" class="btn btn--primary">🎓 Certificado Formal (PDF)</button>
-            <button @click="generarReporteLocal" class="btn btn--primary">📋 Certificado</button>
             <div class="result__actions-group">
               <label><input type="checkbox" v-model="anonimizarKML"> 🔒 Sanitizar PII</label>
               <button @click="descargarKML" class="btn btn--download">📥 Exportar KML</button>
@@ -171,87 +150,54 @@
           <button class="btn btn--cancel" @click="cerrarDibujo">❌ Cancelar</button>
         </div>
       </div>
-    </main>
 
-    <!-- Footer -->
-    <footer class="footer">
-      <div class="footer__grid">
-        <div class="footer__brand">
-          <h3 class="footer__logo">CO₂ TerraSentry</h3>
-          <p>Infraestructura de Trazabilidad Soberana para monitoreo ambiental, huella de carbono y cumplimiento EUDR.</p>
-        </div>
-        <div class="footer__resources">
-          <h4 class="footer__heading">Recursos</h4>
-          <ul><li><a href="#">Documentación</a></li><li><a href="#">API Gateway</a></li><li><a href="#">GFW</a></li><li><a href="#">NASA FIRMS</a></li></ul>
-        </div>
-        <div class="footer__security">
-          <h4 class="footer__heading">Seguridad</h4>
-          <ul><li><a href="#">Política de Privacidad</a></li><li><a href="#">Términos</a></li><li><a href="#">Zero-Knowledge PII</a></li><li><a href="#">RGPD</a></li></ul>
+      <!-- TUTORIAL OVERLAY -->
+      <div v-if="tutorialActivo" class="tutorial-overlay" @click.stop="manejarClickOverlay" role="dialog" aria-modal="true" aria-label="Tutorial interactivo">
+        <div class="tutorial-tooltip" v-if="tutorialActivo && pasoActual !== null" :style="tooltipStyle">
+          <div class="tutorial-tooltip-arrow"></div>
+          <p>{{ pasos[pasoActual]?.texto }}</p>
+          <div class="tutorial-nav">
+            <button class="tutorial-btn tutorial-btn--prev" @click="anteriorPaso" :disabled="pasoActual === 0">Anterior</button>
+            <span class="tutorial-counter">{{ pasoActual+1 }} / {{ pasos.length }}</span>
+            <button class="tutorial-btn tutorial-btn--next" @click="pasoActual === pasos.length-1 ? finalizarTutorial() : siguientePaso()">
+              {{ pasoActual === pasos.length-1 ? "Finalizar" : "Siguiente" }}
+            </button>
+          </div>
         </div>
       </div>
-      <div class="footer__bottom">
-        <p class="footer__copy">© 2026 · TerraSentry · Todos los derechos reservados</p>
-        <p class="footer__note">Datos Satelitales Colectados: NASA / USGS / GFW · Terrabyte 🇦🇷</p>
-      </div>
-    </footer>
 
-    <!-- TUTORIAL OVERLAY Y TOOLTIP -->
-    <div v-if="tutorialActivo" class="tutorial-overlay" @click.stop="manejarClickOverlay" role="dialog" aria-modal="true" aria-label="Tutorial interactivo">
-      <div class="tutorial-tooltip" v-if="tutorialActivo && pasoActual !== null" :style="tooltipStyle">
-        <div class="tutorial-tooltip-arrow"></div>
-        <p>{{ pasos[pasoActual]?.texto }}</p>
-        <div class="tutorial-nav">
-          <button class="tutorial-btn tutorial-btn--prev" @click="anteriorPaso" :disabled="pasoActual === 0">Anterior</button>
-          <span class="tutorial-counter">{{ pasoActual+1 }} / {{ pasos.length }}</span>
-          <button class="tutorial-btn tutorial-btn--next" @click="pasoActual === pasos.length-1 ? finalizarTutorial() : siguientePaso()">
-            {{ pasoActual === pasos.length-1 ? "Finalizar" : "Siguiente" }}
-          </button>
-        </div>
+      <!-- Componente oculto para PDF -->
+      <div v-show="certificadoVisible" style="position: absolute; left: -9999px;">
+        <CertificateTemplate
+          v-if="resultadoData"
+          :productor="productor"
+          :renspa="renspa"
+          :cuit="cuit"
+          :campaña="campaña"
+          :producto="producto"
+          :compliance-token="resultadoData.compliance_token"
+          :area-total="resultadoData.areaTotal"
+          :deforestacion-post2020="resultadoData.deforestacionPost2020 || resultadoData.deforestacion"
+          :carbono="resultadoData.carbono"
+          :indice-verde="resultadoData.indiceVerde"
+          :veredicto="resultadoData.veredicto"
+          :ubicacion="resultadoData.ubicacion"
+          :area-protegida="resultadoData.area_protegida"
+        />
       </div>
-    </div>
-  </div>
-  <div v-show="certificadoVisible" style="position: absolute; left: -9999px;">
-    <CertificateTemplate
-      v-if="resultadoData"
-      :productor="productor"
-      :renspa="renspa"
-      :cuit="cuit"
-      :campaña="campaña"
-      :producto="producto"
-      :compliance-token="resultadoData.compliance_token"
-      :area-total="resultadoData.areaTotal"
-      :deforestacion-post2020="resultadoData.deforestacionPost2020 || resultadoData.deforestacion"
-      :carbono="resultadoData.carbono"
-      :indice-verde="resultadoData.indiceVerde"
-      :veredicto="resultadoData.veredicto"
-      :ubicacion="resultadoData.ubicacion"
-      :area-protegida="resultadoData.area_protegida"
-    />
-  </div>
     </main>
     <Footer />
+  </div>
 </template>
 
 <script setup>
 import { ref, nextTick, computed, onUnmounted } from 'vue'
-import Header from './components/Header.vue'
-import Footer from './components/Footer.vue'
 import MapManager from './map-manager.js'
-import Header from './components/Header.vue'
-import Footer from './components/Footer.vue'
 import KmlParser from './kml-parser.js'
-import Header from './components/Header.vue'
-import Footer from './components/Footer.vue'
 import TutorialEngine from './tutorial-engine.js'
-import Header from './components/Header.vue'
-import Footer from './components/Footer.vue'
-import CertificateTemplate from './components/CertificateTemplate.vue'
-import Header from './components/Header.vue'
-import Footer from './components/Footer.vue'
 import { ApiClient } from './api-client.js'
-import Header from './components/Header.vue'
-import Footer from './components/Footer.vue'
 import html2pdf from 'html2pdf.js'
+import CertificateTemplate from './components/CertificateTemplate.vue'
 import Header from './components/Header.vue'
 import Footer from './components/Footer.vue'
 
@@ -377,7 +323,9 @@ async function analizarLote() {
       centroidLat: data.centroid_lat, centroidLon: data.centroid_lon,
       calidadAire: data.calidad_aire, incendiosCercanos: data.incendios_cercanos, sismos: data.sismos_cercanos,
       temperatura: data.clima?.temperatura ?? '—', humedad: data.clima?.humedad ?? '—', lluvia: data.clima?.precipitacion_3d ?? '—',
-      ubicacion: data.ubicacion?.formatted ?? '—', clima: data.clima, statusMonitoreo: data.status_monitoreo
+      ubicacion: data.ubicacion?.formatted ?? '—', clima: data.clima, statusMonitoreo: data.status_monitoreo,
+      compliance_token: data.compliance_token, area_protegida: data.area_protegida,
+      deforestacionPost2020: data.deforestacion_post2020_ha
     }
     if (mostrarMapa.value) { await nextTick(); mapaPrincipal.initialize(coordenadasRaw); mapaPrincipal.drawPolygon(sanitizado, colorEstado.value); mapaPrincipal.setView(data.centroid_lat, data.centroid_lon) }
   } catch (err) { errorMsg.value = err.message }
@@ -397,7 +345,7 @@ async function mostrarEnMapa() {
 
 function generarReporteLocal() {
   if (!resultadoData.value) return
-  const reporte = `=====================================================\n          CERTIFICADO DE TRAZABILIDAD REGULATORIA - EUDR\n=====================================================\nFecha: ${new Date().toISOString()}\nEstablecimiento: ${productor.value}\nCUIT: ${cuit.value} | RENSPA: ${renspa.value}\nCampaña: ${campaña.value} | Producto: ${producto.value}\n\nDICTAMEN: ${resultadoData.value.veredicto.toUpperCase()}\nÍndice Verde: ${resultadoData.value.indiceVerde}\n\nSuperficie: ${resultadoData.value.areaTotal} ha\nDeforestación: ${resultadoData.value.deforestacion} ha\nCarbono: ${resultadoData.value.carbono} tCO₂e\nAfectación: ${porcentajeDeforestacion.value}%\n\nNodo de Monitoreo Global: TerraSentry Core-Engine\n=====================================================`
+  const reporte = `=====================================================\n          CERTIFICADO DE TRAZABILIDAD REGULATORIA - EUDR\n=====================================================\nFecha: ${new Date().toISOString()}\nEstablecimiento: ${productor.value}\nCUIT: ${cuit.value} | RENSPA: ${renspa.value}\nCampaña: ${campaña.value} | Producto: ${producto.value}\n\nDICTAMEN: ${resultadoData.value.veredicto.toUpperCase()}\nÍndice Verde: ${resultadoData.value.indiceVerde}\n\nSuperficie: ${resultadoData.value.areaTotal} ha\nDeforestación: ${resultadoData.value.deforestacion} ha\nCarbono: ${resultadoData.value.carbono} tCO₂e\nAfectación: ${porcentajeDeforestacion.value}%\n\nToken de Cumplimiento: ${resultadoData.value.compliance_token}\n\nNodo de Monitoreo Global: TerraSentry Core-Engine\n=====================================================`
   const blob = new Blob([reporte], {type:'text/plain'})
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a'); a.href = url; a.download = `Certificado_${productor.value.replace(/\s+/g,'_')}.txt`; a.click()
@@ -417,6 +365,24 @@ async function generarReporteIA() {
     if (data.ingresos) resultadoData.value.ingresos = data.ingresos
     if (data.analisis_ia) resultadoData.value.analisisIA = data.analisis_ia
   } catch(e) { errorMsg.value = 'Error al generar reporte IA: ' + e.message }
+}
+
+function exportarCertificadoFormal() {
+  if (!resultadoData.value) return
+  certificadoVisible.value = true
+  nextTick(() => {
+    const element = document.getElementById('certificado-formal')
+    const opt = {
+      margin: [10, 10, 10, 10],
+      filename: `Certificado_TerraSentry_${productor.value.replace(/\s+/g, '_')}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, logging: false, letterRendering: true, useCORS: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    }
+    html2pdf().set(opt).from(element).save().then(() => {
+      certificadoVisible.value = false
+    })
+  })
 }
 
 function abrirDibujo() {
@@ -443,36 +409,16 @@ function confirmarDibujo() {
 function cerrarDibujo() {
   if (mapaDibujo) { mapaDibujo.remove(); mapaDibujo = null; dibujoItems = null }
   modoDibujo.value = false
-
-function exportarCertificadoFormal() {
-  if (!resultadoData.value) return;
-  certificadoVisible.value = true;
-  nextTick(() => {
-    const element = document.getElementById("certificado-formal");
-    const opt = {
-      margin: [10, 10, 10, 10],
-      filename: `Certificado_TerraSentry_${productor.value.replace(/\s+/g, "_")}.pdf`,
-      image: { type: "jpeg", quality: 0.98 },
-      html2canvas: { scale: 2, logging: false, letterRendering: true, useCORS: true },
-      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
-    };
-    html2pdf().set(opt).from(element).save().then(() => {
-      certificadoVisible.value = false;
-    });
-  });
-}
 }
 
 onUnmounted(() => { if (mapaDibujo) mapaDibujo.remove() })
 </script>
 
 <style>
-@import '/styles.css';
+@import './styles.css';
 @import 'leaflet/dist/leaflet.css';
 @import 'leaflet-draw/dist/leaflet.draw.css';
-</style>
 
-<style>
 .app {
   display: flex;
   flex-direction: column;
