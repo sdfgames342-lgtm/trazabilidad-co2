@@ -682,3 +682,28 @@ p {
 .coord-feedback { margin-top: 5px; font-size: 0.8rem; }
 .text-success { color: #10b981; }
 .text-error { color: #ef4444; }
+
+/* Páginas estáticas */
+.page-body {
+  background: var(--bg-body, #f8fafc);
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  margin: 0;
+}
+.page-container {
+  max-width: 800px;
+  padding: 2rem;
+  background: white;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+}
+.page-container h1 {
+  margin-bottom: 1rem;
+}
+.page-container a {
+  color: var(--brand-blue);
+}

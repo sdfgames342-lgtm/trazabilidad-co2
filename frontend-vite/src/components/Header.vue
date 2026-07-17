@@ -1,13 +1,24 @@
 <template>
-  <header class="header" role="banner">
+  <header class="header" :class="{ 'reduced-motion': !animationsEnabled }" role="banner">
     <div class="header__container">
+      <!-- Logo rediseñado -->
       <router-link to="/" class="header__logo" aria-label="TerraSentry - Inicio">
-        <span class="logo-icon" aria-hidden="true">🌍</span>
-        <span class="logo-text">
-          <span class="co2-badge">CO₂</span> TerraSentry
-        </span>
+        <div class="logo-icon">
+          <span class="co2-badge">CO<sup>2</sup></span>
+          <div class="electric-effect"></div>
+          <div class="blinking-dot"></div>
+        </div>
+        <span class="logo-text">TERRASENTRY</span>
       </router-link>
 
+      <!-- Toggle de animaciones (menú de configuración) -->
+      <div class="header__controls">
+        <button class="anim-toggle" @click="animationsEnabled = !animationsEnabled" :aria-pressed="animationsEnabled">
+          {{ animationsEnabled ? '✨' : '🚫' }}
+        </button>
+      </div>
+
+      <!-- Botón hamburguesa -->
       <button
         class="header__menu-toggle"
         @click="isMenuOpen = !isMenuOpen"
@@ -20,6 +31,7 @@
         <span class="hamburger-line"></span>
       </button>
 
+      <!-- Navegación principal -->
       <nav
         id="main-navigation"
         class="header__nav"
@@ -30,8 +42,8 @@
         <ul class="header__nav-list">
           <li><router-link to="/" @click="closeMenu">Inicio</router-link></li>
           <li><router-link to="/analisis" @click="closeMenu">Análisis</router-link></li>
-          <li><a href="/docs" @click="closeMenu">Documentación</a></li>
-          <li><a href="/contacto" @click="closeMenu">Contacto</a></li>
+          <li><a href="/guia-de-uso.html" @click="closeMenu">Documentación</a></li>
+          <li><a href="/preguntas-frecuentes.html" @click="closeMenu">Contacto</a></li>
           <li><button class="btn btn--tutorial" @click="onTutorial">🎓 Tutorial</button></li>
           <li><button class="btn btn--help" disabled aria-disabled="true">❓ Ayuda</button></li>
         </ul>
@@ -44,6 +56,7 @@
 import { ref } from 'vue'
 
 const isMenuOpen = ref(false)
+const animationsEnabled = ref(true) // controla el efecto eléctrico y el punto parpadeante
 
 function closeMenu() {
   isMenuOpen.value = false
@@ -57,134 +70,119 @@ function onTutorial() {
 </script>
 
 <style scoped>
-.header {
-  position: sticky;
-  top: 0;
-  z-index: 1000;
-  background: var(--glass-bg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid var(--glass-border);
-  box-shadow: var(--glass-shadow);
-  transition: background var(--transition-fast);
-}
+/* ... (mantén los estilos base) ... */
 
-.header__container {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0.75rem 1.25rem;
-  flex-wrap: wrap;
-}
-
+/* Logo rediseñado */
 .header__logo {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
   text-decoration: none;
-  color: var(--brand-white);
+}
+
+.logo-icon {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.co2-badge {
+  background: linear-gradient(135deg, #1e3a8a, #2563eb);
+  color: white;
+  font-family: var(--font-mono);
+  font-weight: 900;
+  font-size: 1.1rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: 6px;
+  z-index: 1;
+  position: relative;
+}
+
+.electric-effect {
+  position: absolute;
+  inset: -4px;
+  border-radius: 10px;
+  background: linear-gradient(45deg, #60a5fa, #3b82f6, #1d4ed8, #60a5fa);
+  background-size: 300% 300%;
+  filter: blur(4px);
+  opacity: 0;
+  transition: opacity 0.3s;
+  z-index: 0;
+}
+
+.blinking-dot {
+  position: absolute;
+  bottom: -6px;
+  left: -6px;
+  width: 12px;
+  height: 12px;
+  background: #60a5fa;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #3b82f6;
+  animation: blink 1.5s infinite;
+  z-index: 2;
+}
+
+/* Cuando las animaciones están activadas */
+.reduced-motion .electric-effect {
+  opacity: 0 !important;
+}
+.reduced-motion .blinking-dot {
+  animation: none;
+  opacity: 0.3;
+}
+
+/* Efectos cuando están habilitados */
+@media (prefers-reduced-motion: no-preference) {
+  .header:not(.reduced-motion) .electric-effect {
+    opacity: 0.6;
+    animation: rotateGradient 3s linear infinite;
+  }
+}
+
+@keyframes rotateGradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
+}
+
+.logo-text {
   font-family: var(--font-mono);
   font-weight: 900;
   font-size: 1.25rem;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.co2-badge {
-  background: rgba(16, 185, 129, 0.15);
-  color: var(--brand-green);
-  padding: 0.1rem 0.35rem;
-  border-radius: 4px;
-  border: 1px solid var(--brand-green);
-  font-size: 0.75rem;
-}
-
-.header__nav-list {
-  display: flex;
-  gap: 0.5rem;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  align-items: center;
-}
-
-.header__nav-list a,
-.header__nav-list .btn {
-  color: var(--brand-gray-200);
-  text-decoration: none;
-  font-size: 0.85rem;
-  font-weight: 500;
-  padding: 0.4rem 0.8rem;
-  border-radius: var(--radius-sm);
-  transition: all var(--transition-fast);
-  background: transparent;
-  border: none;
-  cursor: pointer;
-}
-
-.header__nav-list a:hover,
-.header__nav-list .btn:hover {
-  background: rgba(255, 255, 255, 0.1);
+  letter-spacing: 0.08em;
   color: var(--brand-white);
 }
 
-.btn--tutorial {
-  background: rgba(37, 99, 235, 0.2) !important;
-  border: 1px solid var(--brand-blue) !important;
-  color: var(--brand-blue) !important;
-}
-
-.btn--help:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.header__menu-toggle {
-  display: none;
-  flex-direction: column;
-  gap: 4px;
+/* Botón de toggle de animaciones */
+.anim-toggle {
   background: transparent;
-  border: none;
+  border: 1px solid var(--glass-border);
+  color: var(--brand-white);
+  font-size: 1rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  padding: 0.5rem;
+  margin-right: 1rem;
+  transition: background var(--transition-fast);
+}
+.anim-toggle:hover {
+  background: rgba(255,255,255,0.1);
 }
 
-.hamburger-line {
-  width: 22px;
-  height: 2px;
-  background: var(--brand-white);
-  transition: all var(--transition-fast);
-}
-
+/* Ajustes responsive */
 @media (max-width: 768px) {
-  .header__menu-toggle {
-    display: flex;
-  }
-
-  .header__nav {
-    width: 100%;
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.3s ease;
-  }
-
-  .header__nav--open {
-    max-height: 400px;
-  }
-
-  .header__nav-list {
-    flex-direction: column;
-    align-items: flex-start;
-    padding: 1rem 0;
-    gap: 0.75rem;
-  }
-
-  .header__nav-list a,
-  .header__nav-list .btn {
-    width: 100%;
-    text-align: left;
+  .header__container {
+    flex-wrap: nowrap;
   }
 }
 </style>
