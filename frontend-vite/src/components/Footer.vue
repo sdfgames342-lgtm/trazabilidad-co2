@@ -49,12 +49,46 @@
           />
         </a>
       </div>
+    <button v-if="showInstallButton" @click="handleInstall" class="btn btn--install">📲 Instalar App</button>
       <p class="footer__copy">© {{ new Date().getFullYear() }} TerraSentry. Todos los derechos reservados.</p>
     </div>
   </footer>
 </template>
 
 <script setup>
+import { ref, onMounted } from "vue"
+
+const installPrompt = ref(null)
+
+const showInstallButton = ref(false)
+
+onMounted(() => {
+
+  window.addEventListener("beforeinstallprompt", (e) => {
+
+    e.preventDefault()
+
+    installPrompt.value = e
+
+    showInstallButton.value = true
+
+  })
+
+})
+
+async function handleInstall() {
+
+  if (!installPrompt.value) return
+
+  installPrompt.value.prompt()
+
+  const { outcome } = await installPrompt.value.userChoice
+
+  if (outcome === "accepted") showInstallButton.value = false
+
+  installPrompt.value = null
+
+}
 </script>
 
 <style scoped>

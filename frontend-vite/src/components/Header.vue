@@ -58,6 +58,10 @@
 import { ref } from 'vue'
 
 const isMenuOpen = ref(false)
+import { watch } from 'vue'
+watch(isMenuOpen, (val) => {
+  document.body.style.overflow = val ? 'hidden' : ''
+})
 
 function toggleMenu() {
   isMenuOpen.value = !isMenuOpen.value
@@ -224,14 +228,19 @@ defineEmits(['start-tutorial'])
 /* ---------- Overlay móvil ---------- */
 .header__mobile-overlay {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;  /* Safari / móviles modernos */
   background: rgba(15, 23, 42, 0.95);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  z-index: 999;
+  z-index: 9999;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow-y: auto;
 }
 
 .header__mobile-nav {
