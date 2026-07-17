@@ -191,6 +191,11 @@
 </template>
 
 <script setup>
+import { onMounted } from 'vue'
+onMounted(() => {
+  const apiKey = localStorage.getItem('terrasentry_api_key')
+  console.log('[TerraSentry Debug] API Key presente:', # Inserta un console.log de depuración en App.vue (al inicio del script setup)apiKey, apiKey ?  : '')
+})
 import { ref, nextTick, computed, onUnmounted } from 'vue'
 import MapManager from './map-manager.js'
 import KmlParser from './kml-parser.js'
