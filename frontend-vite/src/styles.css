@@ -835,3 +835,17 @@ p {
   background: rgba(239, 68, 68, 0.5) !important;
   border-color: #ef4444 !important;
 }
+
+/* Asegurar que los controles de Leaflet no sean tapados */
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 1000 !important;
+}
+.leaflet-draw-toolbar a {
+  background-color: #1e293b !important;
+  border-bottom: 1px solid #334155 !important;
+  color: #e2e8f0 !important;
+}
+.leaflet-draw-toolbar a:hover {
+  background-color: #2563eb !important;
+}

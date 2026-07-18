@@ -27,7 +27,9 @@ export class ApiClient {
       const data = await resp.json()
       throw new Error(data.error || 'Error del servidor')
     }
-    return await resp.json()
+    const data = await resp.json()
+    console.log('[ApiClient] Respuesta completa del backend:', data)
+    return data
   }
 
   static async getEmergencyLayers() {

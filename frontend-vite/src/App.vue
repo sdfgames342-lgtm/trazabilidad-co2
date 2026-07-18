@@ -104,7 +104,6 @@
         </div>
 
         <div v-else-if="resultadoData" class="card card--result">
-          <!-- MÉTRICAS Y RESULTADOS -->
           <div class="result-badge" :style="{ background: colorEstado + '22', color: colorEstado, borderColor: colorEstado + '40' }">
             {{ resultadoData.veredicto }}
           </div>
@@ -233,7 +232,6 @@ const tutorial = new TutorialEngine(pasos, {
   onClickElemento: () => {}
 })
 
-// Bloquear scroll cuando el tutorial está activo
 watch(tutorialActivo, (val) => {
   document.body.style.overflow = val ? 'hidden' : ''
 })
@@ -256,7 +254,7 @@ const colorEstado = computed(() => {
   return p===0?'#10b981':p<5?'#f59e0b':p<20?'#f97316':'#ef4444'
 })
 
-// ---------- Métodos (stubs – debes completarlos con tu lógica real) ----------
+// ---------- Métodos ----------
 function cargarKML(event) {
   const file = event.target.files[0]
   if (!file) return
@@ -292,21 +290,34 @@ async function analizarLote() {
       coords: sanitizado, productor: productor.value, email: email.value,
       renspa: renspa.value, cuit: cuit.value, campaña: campaña.value, producto: producto.value
     })
+    // Asignación REACTIVA correcta de todos los campos, especialmente carbono
     resultadoData.value = {
-      areaTotal: data.area_total_ha, deforestacion: Math.min(data.deforestacion_ha, data.area_total_ha),
-      carbono: data.carbono_ton, gananciaBosque: data.ganancia_bosque_ha, bosqueBasal: data.bosque_basal_ha,
-      indiceVerde: data.indice_verde, veredicto: data.veredicto, dentroCordoba: data.dentro_cordoba,
-      centroidLat: data.centroid_lat, centroidLon: data.centroid_lon,
-      calidadAire: data.calidad_aire, incendiosCercanos: data.incendios_cercanos, sismos: data.sismos_cercanos,
-      ubicacion: data.ubicacion?.formatted ?? '—', compliance_token: data.compliance_token
+      areaTotal: data.area_total_ha,
+      deforestacion: data.deforestacion_ha,
+      carbono: data.carbono_ton,        // <-- ¡Este es el campo clave!
+      gananciaBosque: data.ganancia_bosque_ha,
+      bosqueBasal: data.bosque_basal_ha,
+      indiceVerde: data.indice_verde,
+      veredicto: data.veredicto,
+      dentroCordoba: data.dentro_cordoba,
+      centroidLat: data.centroid_lat,
+      centroidLon: data.centroid_lon,
+      calidadAire: data.calidad_aire,
+      incendiosCercanos: data.incendios_cercanos,
+      sismos: data.sismos_cercanos,
+      ubicacion: data.ubicacion,
+      compliance_token: data.compliance_token,
+      area_protegida: data.area_protegida
     }
+    console.log('[App] resultadoData asignado:', resultadoData.value)
   } catch (err) { errorMsg.value = err.message }
   finally { cargando.value = false }
 }
 
 async function mostrarEnMapa() {
   if (!coordenadasRaw.value.trim()) { errorMsg.value = 'Ingrese coordenadas primero'; return }
-  mostrarMapa.value = true; await nextTick()
+  mostrarMapa.value = true
+  await nextTick()
   mapaPrincipal.initialize(coordenadasRaw)
   mapaPrincipal.drawPolygon(coordenadasRaw.value, colorEstado.value)
 }
@@ -334,30 +345,75 @@ function exportarCertificadoFormal() {
 function abrirDibujo() {
   modoDibujo.value = true
   nextTick(() => {
-    mapaDibujo = L.map('drawMapContainer').setView([-33.12, -64.35], 12)
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapaDibujo)
-    dibujoItems = new L.FeatureGroup(); mapaDibujo.addLayer(dibujoItems)
-    new L.Control.Draw({ position:'topright', draw:{ polygon:{ allowIntersection:false } }, edit:false }).addTo(mapaDibujo)
+    // Destruir instancia anterior si existe
+    if (mapaDibujo) mapaDibujo.remove()
+    mapaDibujo = L.map('drawMapContainer', {
+      zoomControl: true,
+      attributionControl: false
+    }).setView([-33.12, -64.35], 12)
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap',
+      maxZoom: 19
+    }).addTo(mapaDibujo)
+
+    dibujoItems = new L.FeatureGroup()
+    mapaDibujo.addLayer(dibujoItems)
+
+    const drawControl = new L.Control.Draw({
+      position: 'topright',
+      draw: {
+        polygon: {
+          allowIntersection: false,
+          shapeOptions: { color: '#10b981' }
+        },
+        polyline: false,
+        circle: false,
+        rectangle: false,
+        marker: false,
+        circlemarker: false
+      },
+      edit: false
+    })
+    mapaDibujo.addControl(drawControl)
+
+    mapaDibujo.on(L.Draw.Event.CREATED, (e) => {
+      dibujoItems.clearLayers()
+      dibujoItems.addLayer(e.layer)
+    })
   })
 }
 
 function confirmarDibujo() {
-  if (!dibujoItems || dibujoItems.getLayers().length === 0) return
+  if (!dibujoItems || dibujoItems.getLayers().length === 0) {
+    errorMsg.value = 'Debe dibujar un polígono primero.'
+    return
+  }
   const layer = dibujoItems.getLayers()[0]
-  if (layer instanceof L.Polygon) coordenadasRaw.value = layer.getLatLngs()[0].map(ll => `${ll.lat.toFixed(6)},${ll.lng.toFixed(6)}`).join('; ')
+  if (layer instanceof L.Polygon) {
+    const coords = layer.getLatLngs()[0].map(ll => `${ll.lat.toFixed(6)},${ll.lng.toFixed(6)}`).join('; ')
+    coordenadasRaw.value = coords
+    console.log('[App] Coordenadas actualizadas desde el dibujo:', coords)
+  }
   cerrarDibujo()
 }
 
 function cerrarDibujo() {
-  if (mapaDibujo) { mapaDibujo.remove(); mapaDibujo = null; dibujoItems = null }
+  if (mapaDibujo) {
+    mapaDibujo.remove()
+    mapaDibujo = null
+    dibujoItems = null
+  }
   modoDibujo.value = false
 }
 
 async function generarReporteIA() {
-  // Stub – implementa según tu API
+  // Implementa según tu API
 }
 
-onUnmounted(() => { if (mapaDibujo) mapaDibujo.remove() })
+onUnmounted(() => {
+  if (mapaDibujo) mapaDibujo.remove()
+})
 </script>
 
 <style>
@@ -379,69 +435,27 @@ onUnmounted(() => { if (mapaDibujo) mapaDibujo.remove() })
   margin: 0 auto;
 }
 
-/* Reparación del formulario */
-.analysis-form {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  height: auto;
-  visibility: visible !important;
-  opacity: 1 !important;
+/* Asegurar que el mapa y sus controles sean interactuables */
+#mapContainer,
+#drawMapContainer {
+  z-index: 1;
 }
 
-.form-fieldset {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  width: 100%;
-  border: none;
-  margin-bottom: 1.5rem;
+/* Controles de dibujo de Leaflet por encima de otros elementos */
+.leaflet-draw {
+  z-index: 1000 !important;
 }
 
-.form-row {
-  width: 100%;
-  margin-bottom: 1rem;
+.leaflet-draw-toolbar {
+  z-index: 1001 !important;
 }
 
-.form-row label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 600;
-  color: #e2e8f0;
+/* Modal de dibujo */
+.draw-modal-overlay {
+  z-index: 2000;
 }
 
-.form-row input,
-.form-row textarea {
-  width: 100%;
-  padding: 0.75rem;
-  background: #1e293b;
-  border: 1px solid #334155;
-  border-radius: 8px;
-  color: #e2e8f0;
-  font-family: 'JetBrains Mono', monospace;
-  transition: all 0.3s ease;
-}
-
-.form-row input:focus,
-.form-row textarea:focus {
-  border-color: #10b981;
-  box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
-  outline: none;
-}
-
-/* Asegurar que el mapa sea visible */
-#mapContainer {
-  height: 400px;
-  width: 100%;
-  border-radius: 12px;
-  border: 1px solid #334155;
-}
-
-/* Tutorial overlay */
-.tutorial-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.8);
-  z-index: 9998;
+.draw-modal-map {
+  z-index: 2001;
 }
 </style>
