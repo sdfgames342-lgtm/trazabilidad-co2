@@ -39,6 +39,12 @@
     <!-- Menú overlay móvil -->
     <Transition name="menu-fade">
       <div v-if="isMenuOpen" id="mobile-menu" class="header__mobile-overlay" @click.self="closeMenu">
+        <!-- Botón X flotante -->
+        <button class="mobile-close-btn" @click="closeMenu" aria-label="Cerrar menú">
+          <span></span>
+          <span></span>
+        </button>
+
         <nav class="header__mobile-nav" role="navigation" aria-label="Navegación móvil">
           <ul class="header__nav-list--vertical">
             <li><router-link to="/" @click="closeMenu">Inicio</router-link></li>
@@ -55,13 +61,9 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 
 const isMenuOpen = ref(false)
-import { watch } from 'vue'
-watch(isMenuOpen, (val) => {
-  document.body.style.overflow = val ? 'hidden' : ''
-})
 
 function toggleMenu() {
   isMenuOpen.value = !isMenuOpen.value
@@ -71,23 +73,25 @@ function closeMenu() {
   isMenuOpen.value = false
 }
 
+// Bloquear scroll del body cuando el menú está abierto
+watch(isMenuOpen, (val) => {
+  document.body.style.overflow = val ? 'hidden' : ''
+})
+
 defineEmits(['start-tutorial'])
 </script>
 
 <style scoped>
-/* ---------- Variables (puedes heredarlas de :root) ---------- */
 .header {
   --header-bg: rgba(15, 23, 42, 0.75);
   --header-border: rgba(255, 255, 255, 0.15);
   --header-blur: 12px;
   --text-primary: #e2e8f0;
   --text-hover: #ffffff;
-  --brand-green: #10b981;
   --brand-blue: #2563eb;
   --transition: all 0.3s ease;
 }
 
-/* ---------- Estructura base ---------- */
 .header {
   position: sticky;
   top: 0;
@@ -97,7 +101,6 @@ defineEmits(['start-tutorial'])
   -webkit-backdrop-filter: blur(var(--header-blur));
   border-bottom: 1px solid var(--header-border);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
-  transition: background 0.3s ease;
 }
 
 .header__container {
@@ -109,7 +112,6 @@ defineEmits(['start-tutorial'])
   padding: 0.75rem 1.25rem;
 }
 
-/* ---------- Logo ---------- */
 .header__logo {
   display: flex;
   align-items: center;
@@ -132,7 +134,6 @@ defineEmits(['start-tutorial'])
   font-weight: 900;
   font-size: 1.1rem;
   color: white;
-  line-height: 1;
 }
 
 .logo-text {
@@ -143,10 +144,8 @@ defineEmits(['start-tutorial'])
   letter-spacing: 0.05em;
 }
 
-/* ---------- Navegación escritorio ---------- */
-.header__nav--desktop {
-  display: none; /* oculto por defecto, visible en desktop */
-}
+/* Navegación escritorio */
+.header__nav--desktop { display: none; }
 
 .header__nav-list {
   display: flex;
@@ -169,7 +168,6 @@ defineEmits(['start-tutorial'])
   background: transparent;
   border: none;
   cursor: pointer;
-  font-family: inherit;
 }
 
 .header__nav-list a:hover,
@@ -179,17 +177,14 @@ defineEmits(['start-tutorial'])
 }
 
 .btn--tutorial {
-  background: rgba(37, 99, 235, 0.15);
-  border: 1px solid var(--brand-blue);
-  color: var(--brand-blue);
+  background: rgba(37, 99, 235, 0.15) !important;
+  border: 1px solid var(--brand-blue) !important;
+  color: var(--brand-blue) !important;
 }
 
-.btn--help {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
+.btn--help:disabled { opacity: 0.5; cursor: not-allowed; }
 
-/* ---------- Botón hamburguesa ---------- */
+/* Hamburguesa */
 .header__menu-toggle {
   display: flex;
   flex-direction: column;
@@ -200,7 +195,6 @@ defineEmits(['start-tutorial'])
   background: transparent;
   border: none;
   cursor: pointer;
-  padding: 0;
   z-index: 1001;
 }
 
@@ -211,10 +205,8 @@ defineEmits(['start-tutorial'])
   background: var(--text-primary);
   border-radius: 2px;
   transition: var(--transition);
-  transform-origin: center;
 }
 
-/* Animación a X */
 .header__menu-toggle--open span:nth-child(1) {
   transform: rotate(45deg) translate(5px, 5px);
 }
@@ -225,14 +217,10 @@ defineEmits(['start-tutorial'])
   transform: rotate(-45deg) translate(5px, -5px);
 }
 
-/* ---------- Overlay móvil ---------- */
+/* Overlay móvil */
 .header__mobile-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  height: 100dvh;  /* Safari / móviles modernos */
+  inset: 0;
   background: rgba(15, 23, 42, 0.95);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -242,6 +230,40 @@ defineEmits(['start-tutorial'])
   justify-content: center;
   overflow-y: auto;
 }
+
+/* Botón X flotante */
+.mobile-close-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  background: rgba(255,255,255,0.1);
+  border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10000;
+  transition: all 0.3s ease;
+}
+
+.mobile-close-btn:hover {
+  background: rgba(239, 68, 68, 0.3);
+  border-color: #ef4444;
+}
+
+.mobile-close-btn span {
+  position: absolute;
+  width: 20px;
+  height: 2px;
+  background: white;
+  border-radius: 2px;
+}
+
+.mobile-close-btn span:nth-child(1) { transform: rotate(45deg); }
+.mobile-close-btn span:nth-child(2) { transform: rotate(-45deg); }
 
 .header__mobile-nav {
   width: 100%;
@@ -253,7 +275,7 @@ defineEmits(['start-tutorial'])
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1rem;
   padding: 0;
 }
 
@@ -261,7 +283,7 @@ defineEmits(['start-tutorial'])
 .header__nav-list--vertical .btn {
   display: block;
   width: 100%;
-  padding: 0.9rem 1.2rem;
+  padding: 1rem 1.5rem;
   font-size: 1rem;
   text-align: center;
   border-radius: 10px;
@@ -274,13 +296,21 @@ defineEmits(['start-tutorial'])
   font-weight: 500;
 }
 
+/* Los dos primeros botones con padding adicional */
+.header__nav-list--vertical li:first-child a,
+.header__nav-list--vertical li:nth-child(2) a {
+  padding: 1.2rem 1.8rem;
+}
+
 .header__nav-list--vertical a:hover,
 .header__nav-list--vertical .btn:hover {
   background: rgba(255, 255, 255, 0.15);
   color: white;
+  border-color: var(--brand-blue);
+  box-shadow: 0 0 15px rgba(37, 99, 235, 0.3);
 }
 
-/* Transición del overlay */
+/* Transiciones */
 .menu-fade-enter-active,
 .menu-fade-leave-active {
   transition: opacity 0.3s ease;
@@ -290,20 +320,13 @@ defineEmits(['start-tutorial'])
   opacity: 0;
 }
 
-/* ---------- Responsive ---------- */
+/* Responsive */
 @media (min-width: 768px) {
-  .header__nav--desktop {
-    display: block;
-  }
-
-  .header__menu-toggle {
-    display: none;
-  }
+  .header__nav--desktop { display: block; }
+  .header__menu-toggle { display: none; }
 }
 
 @media (max-width: 767px) {
-  .header__nav--desktop {
-    display: none;
-  }
+  .header__nav--desktop { display: none; }
 }
 </style>

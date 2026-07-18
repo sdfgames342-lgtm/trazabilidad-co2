@@ -707,3 +707,81 @@ p {
 .page-container a {
   color: var(--brand-blue);
 }
+
+/* ============================================================
+   FORMULARIO – FONDO SÓLIDO Y ESPACIADO
+   ============================================================ */
+.card {
+  background: rgba(17, 24, 39, 0.95); /* Fondo sólido oscuro */
+  backdrop-filter: blur(0);           /* Sin blur en el formulario */
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  min-height: 400px;
+}
+
+.form-fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* ============================================================
+   INPUTS – EFECTO FOCUS CYBER/BRILLANTE
+   ============================================================ */
+.form-row input,
+.form-row textarea,
+.form-row select {
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(37, 99, 235, 0.3);
+  color: #e2e8f0;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-family: var(--font-mono);
+  transition: all 0.3s ease;
+  opacity: 1 !important; /* Sin opacidad que nuble */
+}
+
+.form-row input:focus,
+.form-row textarea:focus,
+.form-row select:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.6), 0 0 24px rgba(59, 130, 246, 0.2);
+  outline: none;
+  background: rgba(15, 23, 42, 0.95);
+}
+
+/* ============================================================
+   TUTORIAL – NÚMEROS CENTRADOS SOBRE BOTONES
+   ============================================================ */
+.tutorial-highlight {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+}
+
+.tutorial-highlight::before {
+  content: attr(data-step);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: var(--brand-blue);
+  color: white;
+  border-radius: 50%;
+  font-weight: 900;
+  font-size: 1rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 0 10px rgba(37, 99, 235, 0.5);
+}
+
+/* Overlay del tutorial (solo fondo, no afecta inputs) */
+.tutorial-overlay {
+  background: rgba(0, 0, 0, 0.75) !important;
+  backdrop-filter: blur(4px);
+}
+
+/* Los elementos dentro del overlay no heredan opacidad */
+.tutorial-overlay * {
+  opacity: 1 !important;
+}

@@ -84,6 +84,10 @@ let dibujoItems = null
 
 // ---------- Tutorial ----------
 const tutorialActivo = ref(false)
+import { watch } from 'vue'
+watch(tutorialActivo, (val) => {
+  document.body.style.overflow = val ? 'hidden' : ''
+})
 const pasoActual = ref(0)
 const tooltipStyle = ref({})
 const pasos = [
