@@ -10,22 +10,152 @@
         </div>
       </div>
 
-      <!-- FORMULARIO Y RESULTADOS (mantén tu contenido existente) -->
+      <!-- FORMULARIO PRINCIPAL -->
       <section class="card" aria-labelledby="form-heading">
         <h2 id="form-heading" class="sr-only">Formulario de análisis</h2>
-        <form @submit.prevent="analizarLote">
-          <!-- ... todos tus campos ... -->
+        <form @submit.prevent="analizarLote" class="analysis-form">
+          <!-- DATOS DEL PRODUCTOR -->
+          <fieldset class="form-fieldset">
+            <legend class="form-legend">Datos del productor</legend>
+            
+            <div class="form-row">
+              <label for="productor">🌾 Productor / Razón Social <span aria-hidden="true">*</span></label>
+              <input type="text" id="productor" v-model="productor" placeholder="Establecimiento Don Juan" required autocomplete="organization">
+            </div>
+            
+            <div class="form-row">
+              <label for="email">📧 Correo Electrónico <span aria-hidden="true">*</span></label>
+              <input type="email" id="email" v-model="email" placeholder="contacto@agro.com" required autocomplete="email">
+            </div>
+            
+            <div class="form-row">
+              <label for="renspa">📄 RENSPA <span aria-hidden="true">*</span></label>
+              <input type="text" id="renspa" v-model="renspa" placeholder="04.123.0.45678/00" required>
+            </div>
+            
+            <div class="form-row">
+              <label for="cuit">🔢 CUIT / CUIL <span aria-hidden="true">*</span></label>
+              <input type="text" id="cuit" v-model="cuit" placeholder="20-34567890-9" required>
+            </div>
+            
+            <div class="form-row">
+              <label for="campaña">📅 Campaña <span aria-hidden="true">*</span></label>
+              <input type="text" id="campaña" v-model="campaña" placeholder="2025/2026" required>
+            </div>
+            
+            <div class="form-row">
+              <label for="producto">🌽 Producto <span aria-hidden="true">*</span></label>
+              <input type="text" id="producto" v-model="producto" placeholder="Soja" required>
+            </div>
+          </fieldset>
+
+          <!-- POLÍGONO DEL LOTE -->
+          <fieldset class="form-fieldset">
+            <legend class="form-legend">Polígono del lote</legend>
+            
+            <div class="form-row">
+              <label for="kmlFile">📁 Cargar KML</label>
+              <input type="file" id="kmlFile" ref="kmlFileInput" accept=".kml,.kmz" @change="cargarKML($event)" class="form__file-input">
+              <div class="form-row__file-actions">
+                <button type="button" class="btn btn--download" @click="$refs.kmlFileInput.click()">📥 Subir archivo</button>
+                <span v-if="archivoCargado" class="form-row__file-status">✅ KML cargado</span>
+              </div>
+              <span class="hint">Seleccioná un archivo .kml o .kmz (solo polígonos)</span>
+            </div>
+
+            <div class="form-row">
+              <button type="button" class="btn btn--draw" @click="abrirDibujo">✏️ DIBUJAR POLÍGONO</button>
+              <span class="hint">Abre un mapa en pantalla completa para marcar el lote manualmente.</span>
+            </div>
+
+            <div class="form-row">
+              <label for="coordenadas">📍 Coordenadas</label>
+              <textarea id="coordenadas" v-model="coordenadasRaw" rows="3" placeholder="-33.1234,-64.3500; -33.1234,-64.3450; ..." required></textarea>
+              <span class="hint">Formato: lat,lon; lat,lon; … (mínimo 3 puntos)</span>
+            </div>
+
+            <div v-if="posibleSwap" class="swap-warning" role="alert">
+              ⚠️ <strong>¿Coordenadas invertidas?</strong> El formato correcto es <strong>latitud,longitud</strong>.
+            </div>
+          </fieldset>
+
+          <!-- BOTONES DE ACCIÓN -->
+          <div class="form__actions">
+            <button type="submit" class="btn btn--primary" :disabled="cargando">
+              <span v-if="!cargando">🌿 Analizar Lote</span>
+              <span v-else>🌀 Analizando matrices...</span>
+            </button>
+            <button type="button" class="btn btn--map" @click="mostrarEnMapa" :disabled="!coordenadasRaw.trim()">🗺️ Ver en Mapa</button>
+          </div>
         </form>
       </section>
 
-      <!-- ... resto de tu interfaz (mapa, resultados, tutorial, etc.) ... -->
+      <!-- MAPA -->
+      <section v-if="mostrarMapa" class="card" aria-label="Mapa">
+        <div id="mapContainer" role="application" aria-label="Mapa interactivo de parcelas agrícolas"></div>
+        <p class="map-hint">📍 Panel Leaflet activo. Usá las herramientas de dibujo.</p>
+      </section>
+
+      <!-- RESULTADOS Y ERRORES -->
+      <transition name="fade">
+        <div v-if="errorMsg" class="card card--error" role="alert">
+          <div class="card__error-icon" aria-hidden="true">⚠️</div>
+          <p class="card__error-text">{{ errorMsg }}</p>
+        </div>
+
+        <div v-else-if="resultadoData" class="card card--result">
+          <!-- MÉTRICAS Y RESULTADOS -->
+          <div class="result-badge" :style="{ background: colorEstado + '22', color: colorEstado, borderColor: colorEstado + '40' }">
+            {{ resultadoData.veredicto }}
+          </div>
+          
+          <p class="ubicacion-lote" v-if="resultadoData.ubicacion">📍 {{ resultadoData.ubicacion.formatted }}</p>
+
+          <div class="metric-group">
+            <div class="metric"><span class="metric__icon">🌎</span><div class="metric__value">{{ resultadoData.areaTotal }} <span>ha</span></div><div class="metric__label">Superficie</div></div>
+            <div class="metric"><span class="metric__icon">🔥</span><div class="metric__value">{{ resultadoData.deforestacion }} <span>ha</span></div><div class="metric__label">Deforestación</div></div>
+            <div class="metric"><span class="metric__icon">🌿</span><div class="metric__value">{{ resultadoData.carbono }} <span>tCO₂e</span></div><div class="metric__label">Carbono</div></div>
+            <div class="metric"><span class="metric__icon">📊</span><div class="metric__value">{{ resultadoData.indiceVerde }}</div><div class="metric__label">Índice Verde</div></div>
+          </div>
+
+          <div class="result__actions">
+            <button @click="generarReporteIA" class="btn btn--ai">🤖 Análisis IA</button>
+            <button @click="generarReporteLocal" class="btn btn--primary">📋 Certificado TXT</button>
+            <button @click="exportarCertificadoFormal" class="btn btn--primary">🎓 Certificado PDF</button>
+          </div>
+        </div>
+      </transition>
+
+      <!-- MODAL DE DIBUJO -->
+      <div v-if="modoDibujo" class="draw-modal-overlay" role="dialog" aria-modal="true">
+        <div id="drawMapContainer" class="draw-modal-map"></div>
+        <div class="draw-modal-actions">
+          <button class="btn btn--confirm" @click="confirmarDibujo">✅ Confirmar</button>
+          <button class="btn btn--cancel" @click="cerrarDibujo">❌ Cancelar</button>
+        </div>
+      </div>
+
+      <!-- TUTORIAL OVERLAY -->
+      <div v-if="tutorialActivo" class="tutorial-overlay" @click.stop="manejarClickOverlay" role="dialog" aria-modal="true">
+        <div class="tutorial-tooltip" v-if="tutorialActivo && pasoActual !== null" :style="tooltipStyle">
+          <div class="tutorial-tooltip-arrow"></div>
+          <p>{{ pasos[pasoActual]?.texto }}</p>
+          <div class="tutorial-nav">
+            <button class="tutorial-btn tutorial-btn--prev" @click="anteriorPaso" :disabled="pasoActual === 0">Anterior</button>
+            <span class="tutorial-counter">{{ pasoActual+1 }} / {{ pasos.length }}</span>
+            <button class="tutorial-btn tutorial-btn--next" @click="pasoActual === pasos.length-1 ? finalizarTutorial() : siguientePaso()">
+              {{ pasoActual === pasos.length-1 ? "Finalizar" : "Siguiente" }}
+            </button>
+          </div>
+        </div>
+      </div>
     </main>
     <Footer />
   </div>
 </template>
 
 <script setup>
-import { ref, nextTick, computed, onUnmounted, onMounted } from 'vue'
+import { ref, nextTick, computed, onUnmounted, watch } from 'vue'
 import MapManager from './map-manager.js'
 import KmlParser from './kml-parser.js'
 import TutorialEngine from './tutorial-engine.js'
@@ -37,24 +167,21 @@ import Footer from './components/Footer.vue'
 import { getApiKey } from './utils/auth.js'
 
 // ---------- Debug API Key ----------
-onMounted(() => {
-  const key = getApiKey()
-  console.log('[TerraSentry Debug] API Key presente:', !!key, key ? `(${key.substring(0,8)}...)` : '')
-  if (!key) {
-    console.warn('[TerraSentry] No se encontró API Key. La app no podrá hacer análisis.')
-  }
-})
+const apiKey = getApiKey()
+if (!apiKey) {
+  console.warn('[TerraSentry] No se encontró API Key. La app usará la clave pública por defecto.')
+}
 
-// ---------- validación ----------
+// ---------- Validación ----------
 function validarCoordenadas(raw) {
-  let limpio = raw.trim().replace(/\s*;\s*/g, ';').replace(/\s*,\s*/g, ',');
-  const partes = limpio.split(';');
-  if (partes.length < 3) return null;
+  let limpio = raw.trim().replace(/\s*;\s*/g, ';').replace(/\s*,\s*/g, ',')
+  const partes = limpio.split(';')
+  if (partes.length < 3) return null
   for (let p of partes) {
-    const [lat, lng] = p.split(',').map(Number);
-    if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+    const [lat, lng] = p.split(',').map(Number)
+    if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) return null
   }
-  return limpio;
+  return limpio
 }
 
 // ---------- Estado reactivo ----------
@@ -84,12 +211,9 @@ let dibujoItems = null
 
 // ---------- Tutorial ----------
 const tutorialActivo = ref(false)
-import { watch } from 'vue'
-watch(tutorialActivo, (val) => {
-  document.body.style.overflow = val ? 'hidden' : ''
-})
 const pasoActual = ref(0)
 const tooltipStyle = ref({})
+
 const pasos = [
   { selector: "input[placeholder='Establecimiento Don Juan']", texto: "1. Completá el nombre del productor." },
   { selector: "input[placeholder='contacto@agro.com']", texto: "2. Ingresá un correo electrónico de contacto." },
@@ -97,8 +221,9 @@ const pasos = [
   { selector: "input[placeholder='20-34567890-9']", texto: "4. CUIT o CUIL del productor." },
   { selector: "input[placeholder='2025/2026']", texto: "5. Campaña actual." },
   { selector: "input[placeholder='Soja']", texto: "6. Producto principal." },
-  { selector: ".btn--draw", texto: "7. Hacé clic en DIBUJA para dibujar el polígono. Luego analizá el lote." }
+  { selector: ".btn--draw", texto: "7. Hacé clic en DIBUJA para dibujar el polígono." }
 ]
+
 const tutorial = new TutorialEngine(pasos, {
   onStateChange: (estado) => {
     tutorialActivo.value = estado.activo
@@ -106,6 +231,11 @@ const tutorial = new TutorialEngine(pasos, {
     tooltipStyle.value = estado.tooltipStyle
   },
   onClickElemento: () => {}
+})
+
+// Bloquear scroll cuando el tutorial está activo
+watch(tutorialActivo, (val) => {
+  document.body.style.overflow = val ? 'hidden' : ''
 })
 
 function iniciarTutorial() { tutorial.iniciar() }
@@ -120,24 +250,114 @@ const porcentajeDeforestacion = computed(() => {
   const d = parseFloat(resultadoData.value.deforestacion), t = parseFloat(resultadoData.value.areaTotal)
   return isNaN(d)||isNaN(t)||t<=0 ? 0 : Math.min(100, Math.round((d/t)*100))
 })
+
 const colorEstado = computed(() => {
   const p = porcentajeDeforestacion.value
   return p===0?'#10b981':p<5?'#f59e0b':p<20?'#f97316':'#ef4444'
 })
 
-// ---------- Métodos (conserva tus implementaciones originales) ----------
-function cargarKML(event) { /* ... igual que antes ... */ }
-function descargarKML() { /* ... */ }
-async function analizarLote() { /* ... */ }
-async function mostrarEnMapa() { /* ... */ }
-function generarReporteLocal() { /* ... */ }
-async function generarReporteIA() { /* ... */ }
-function exportarCertificadoFormal() { /* ... */ }
-function abrirDibujo() { /* ... */ }
-function confirmarDibujo() { /* ... */ }
-function cerrarDibujo() { /* ... */ }
+// ---------- Métodos (stubs – debes completarlos con tu lógica real) ----------
+function cargarKML(event) {
+  const file = event.target.files[0]
+  if (!file) return
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    try { coordenadasRaw.value = KmlParser.parse(e.target.result); archivoCargado.value = true; errorMsg.value = null }
+    catch (err) { errorMsg.value = 'Error al procesar KML: ' + err.message; archivoCargado.value = false }
+  }
+  reader.readAsText(file)
+}
 
-// Exportaciones necesarias (si usas componentes hijos, etc.)
+function descargarKML() {
+  if (!coordenadasRaw.value.trim()) { errorMsg.value = 'No hay coordenadas para generar KML'; return }
+  const nombre = productor.value || 'Establecimiento'
+  const datos = resultadoData.value ? { areaTotal:resultadoData.value.areaTotal, deforestacion:resultadoData.value.deforestacion, carbono:resultadoData.value.carbono, indiceVerde:resultadoData.value.indiceVerde, veredicto:resultadoData.value.veredicto } : null
+  const kml = KmlParser.generate(coordenadasRaw.value, nombre, datos)
+  const blob = new Blob([kml], {type:'application/vnd.google-earth.kml+xml'})
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a'); a.href = url; a.download = `${nombre.replace(/\s+/g,'_')}.kml`; a.click()
+  URL.revokeObjectURL(url)
+}
+
+async function analizarLote() {
+  errorMsg.value = null; resultadoData.value = null
+  if (!productor.value || !email.value || !renspa.value || !cuit.value || !campaña.value || !producto.value) {
+    errorMsg.value = 'Complete todos los campos obligatorios'; return
+  }
+  const sanitizado = validarCoordenadas(coordenadasRaw.value)
+  if (!sanitizado) { errorMsg.value = 'Formato de coordenadas incorrecto'; return }
+  cargando.value = true
+  try {
+    const data = await ApiClient.analyze({
+      coords: sanitizado, productor: productor.value, email: email.value,
+      renspa: renspa.value, cuit: cuit.value, campaña: campaña.value, producto: producto.value
+    })
+    resultadoData.value = {
+      areaTotal: data.area_total_ha, deforestacion: Math.min(data.deforestacion_ha, data.area_total_ha),
+      carbono: data.carbono_ton, gananciaBosque: data.ganancia_bosque_ha, bosqueBasal: data.bosque_basal_ha,
+      indiceVerde: data.indice_verde, veredicto: data.veredicto, dentroCordoba: data.dentro_cordoba,
+      centroidLat: data.centroid_lat, centroidLon: data.centroid_lon,
+      calidadAire: data.calidad_aire, incendiosCercanos: data.incendios_cercanos, sismos: data.sismos_cercanos,
+      ubicacion: data.ubicacion?.formatted ?? '—', compliance_token: data.compliance_token
+    }
+  } catch (err) { errorMsg.value = err.message }
+  finally { cargando.value = false }
+}
+
+async function mostrarEnMapa() {
+  if (!coordenadasRaw.value.trim()) { errorMsg.value = 'Ingrese coordenadas primero'; return }
+  mostrarMapa.value = true; await nextTick()
+  mapaPrincipal.initialize(coordenadasRaw)
+  mapaPrincipal.drawPolygon(coordenadasRaw.value, colorEstado.value)
+}
+
+function generarReporteLocal() {
+  if (!resultadoData.value) return
+  const reporte = `CERTIFICADO DE TRAZABILIDAD EUDR\n============================\nVeredicto: ${resultadoData.value.veredicto}\nToken: ${resultadoData.value.compliance_token}`
+  const blob = new Blob([reporte], {type:'text/plain'})
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a'); a.href = url; a.download = 'Certificado_TerraSentry.txt'; a.click()
+  URL.revokeObjectURL(url)
+}
+
+function exportarCertificadoFormal() {
+  if (!resultadoData.value) return
+  certificadoVisible.value = true
+  nextTick(() => {
+    const element = document.getElementById('certificado-formal')
+    if (!element) return
+    html2pdf().set({ margin: 10, filename: 'Certificado_TerraSentry.pdf' }).from(element).save()
+    certificadoVisible.value = false
+  })
+}
+
+function abrirDibujo() {
+  modoDibujo.value = true
+  nextTick(() => {
+    mapaDibujo = L.map('drawMapContainer').setView([-33.12, -64.35], 12)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapaDibujo)
+    dibujoItems = new L.FeatureGroup(); mapaDibujo.addLayer(dibujoItems)
+    new L.Control.Draw({ position:'topright', draw:{ polygon:{ allowIntersection:false } }, edit:false }).addTo(mapaDibujo)
+  })
+}
+
+function confirmarDibujo() {
+  if (!dibujoItems || dibujoItems.getLayers().length === 0) return
+  const layer = dibujoItems.getLayers()[0]
+  if (layer instanceof L.Polygon) coordenadasRaw.value = layer.getLatLngs()[0].map(ll => `${ll.lat.toFixed(6)},${ll.lng.toFixed(6)}`).join('; ')
+  cerrarDibujo()
+}
+
+function cerrarDibujo() {
+  if (mapaDibujo) { mapaDibujo.remove(); mapaDibujo = null; dibujoItems = null }
+  modoDibujo.value = false
+}
+
+async function generarReporteIA() {
+  // Stub – implementa según tu API
+}
+
+onUnmounted(() => { if (mapaDibujo) mapaDibujo.remove() })
 </script>
 
 <style>
@@ -150,7 +370,78 @@ function cerrarDibujo() { /* ... */ }
   flex-direction: column;
   min-height: 100vh;
 }
+
 .main {
   flex: 1;
+  width: 100%;
+  padding: 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Reparación del formulario */
+.analysis-form {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: auto;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.form-fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  border: none;
+  margin-bottom: 1.5rem;
+}
+
+.form-row {
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.form-row label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.form-row input,
+.form-row textarea {
+  width: 100%;
+  padding: 0.75rem;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  color: #e2e8f0;
+  font-family: 'JetBrains Mono', monospace;
+  transition: all 0.3s ease;
+}
+
+.form-row input:focus,
+.form-row textarea:focus {
+  border-color: #10b981;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+  outline: none;
+}
+
+/* Asegurar que el mapa sea visible */
+#mapContainer {
+  height: 400px;
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid #334155;
+}
+
+/* Tutorial overlay */
+.tutorial-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 9998;
 }
 </style>
