@@ -6,18 +6,11 @@
       "properties": {
         "NAME": "Parque Nacional Quebrada del Condorito",
         "DESIG": "National Park",
-        "IUCN_CAT": "II",
-        "STATUS": "Designated"
+        "IUCN_CAT": "II"
       },
       "geometry": {
         "type": "Polygon",
-        "coordinates": [[
-          [-64.8, -31.7],
-          [-64.6, -31.7],
-          [-64.6, -31.5],
-          [-64.8, -31.5],
-          [-64.8, -31.7]
-        ]]
+        "coordinates": [[[-64.8, -31.7], [-64.6, -31.7], [-64.6, -31.5], [-64.8, -31.5], [-64.8, -31.7]]]
       }
     },
     {
@@ -25,17 +18,25 @@
       "properties": {
         "NAME": "Reserva Natural de Fauna Laguna La Felipa",
         "DESIG": "Wildlife Reserve",
-        "IUCN_CAT": "IV",
-        "STATUS": "Designated"
+        "IUCN_CAT": "IV"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-63.5, -33.2], [-63.3, -33.2], [-63.3, -33.0], [-63.5, -33.0], [-63.5, -33.2]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "NAME": "Parque Nacional Iguazú",
+        "DESIG": "National Park",
+        "IUCN_CAT": "II"
       },
       "geometry": {
         "type": "Polygon",
         "coordinates": [[
-          [-63.5, -33.2],
-          [-63.3, -33.2],
-          [-63.3, -33.0],
-          [-63.5, -33.0],
-          [-63.5, -33.2]
+          [-54.4486, -25.5167], [-54.4167, -25.5167], [-54.4167, -25.7000],
+          [-54.4486, -25.7000], [-54.4486, -25.5167]
         ]]
       }
     }
