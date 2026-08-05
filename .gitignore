@@ -2,3 +2,21 @@
 *.pdf
 .vercel
 .env
+# Backups
+*.bak
+*.bak2
+*.bak3
+*.bak4
+*.bak_v2
+*.bak_sri
+*.legacy
+
+# Python
+__pycache__/
+*.pyc
+
+# Redis
+dump.rdb
+
+# Node
+node_modules/
